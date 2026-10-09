@@ -49,6 +49,8 @@
   <div class="hd"><h1>台南柳營廠 3D 規劃模型</h1><button id="uitog" type="button" aria-expanded="true">收合 ▴</button></div>
   <div id="uibody">
   <div class="sub">管路版 20261004｜架台細部＋鋼製基座｜管架依製造圖｜車道淨空</div>
+  <h2>分區 <small>只顯示該區，可旋轉拉近</small></h2>
+  <div class="btns" id="areas"></div>
   <h2>視角</h2>
   <div class="btns" id="views"></div>
   <h2>一鍵顯示</h2>
@@ -85,7 +87,7 @@ const OX = 110000, OY = 27000;
 const P = (x, y, z) => new THREE.Vector3((x - OX) / 100, z / 100, -(y - OY) / 100);
 const $ = id => document.getElementById(id);
 const loadMsg = t => { $("load").textContent = t; };
-const uiSet = closed => { $("ui").classList.toggle("closed", closed); $("uitog").textContent = closed ? "展開 ▾" : "收合 ▴"; $("uitog").setAttribute("aria-expanded", String(!closed)); };
+const uiSet = window.uiSet = closed => { $("ui").classList.toggle("closed", closed); $("uitog").textContent = closed ? "展開 ▾" : "收合 ▴"; $("uitog").setAttribute("aria-expanded", String(!closed)); };
 { let st = null; try { st = localStorage.getItem("ui_closed"); } catch (e) {}
   uiSet(st === null ? matchMedia("(max-width:600px)").matches : st === "1"); }
 $("uitog").onclick = () => { const c = !$("ui").classList.contains("closed"); uiSet(c); try { localStorage.setItem("ui_closed", c ? "1" : "0"); } catch (e) {} };
@@ -319,7 +321,7 @@ function adjustNear() { const d = cam.position.distanceTo(ctl.target); const n =
 function setLayer(L, on) {
   vis[L] = on;
   if (meshes[L]) meshes[L].visible = on;
-  if (L.startsWith("標籤")) lblObjs.forEach(o => { if (o.userData.L === L) o.visible = on; });
+  if (L.startsWith("標籤")) lblObjs.forEach(o => { if (o.userData.L === L) o.visible = on && !o.userData.out; });
 }
 const present = L => !!meshes[L] || LABEL_LAYERS.includes(L);
 const TREE = [];            // {layers, cb} 供重新整理勾選狀態
@@ -398,7 +400,7 @@ function wallT(on) {
   shadowsDirty();
 }
 window.wallT = wallT;
-$("wt").onchange = e => wallT(e.target.checked);
+$("wt").onchange = e => wallT(e.target.checked || !!curArea);
 function setShadow(on) { renderer.shadowMap.enabled = on; sun.castShadow = on; scene.traverse(o => { if (o.material && o.material.isMaterial) o.material.needsUpdate = true; }); shadowsDirty(); }
 let aoOn = true;
 function setAO(on) { aoOn = on; need(); }
@@ -487,8 +489,57 @@ window.bench = function (n = 10, hq = true, low = false) {   // 量測每格畫�
   for (let i = 0; i < n; i++) { renderNow(hq, low); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
   return Math.round((performance.now() - t0) / n * 10) / 10;
 };
+// ───────── 分區（剖切盒：只留該區；名稱：[x0, x1, y0, y1, z0, z1] 合併配置圖座標 cm）
+const AREAS = {
+  "E 鍋爐房": [109900, 110800, 20950, 23250, -50, 950],
+  "D 空壓機房": [100700, 102950, 28330, 29400, -50, 1000],
+  "B 純水": [110650, 111850, 25700, 27120, -50, 900],
+  "C 冷卻水塔": [109700, 110600, 22950, 24650, -50, 1600],
+  "G 廢水（結晶＋集水池）": [110750, 111900, 21150, 24250, -50, 800],
+  "化鐵車間": [105500, 111500, 30700, 32600, -50, 1000],
+  "原料罐＋洗滌塔": [105300, 111900, 32300, 33600, -50, 1800],
+  "儲罐區": [103700, 106400, 27200, 29200, -50, 1000],
+  "合成區": [106300, 109500, 27700, 29600, -50, 1200],
+  "板框區": [106900, 109900, 25900, 27650, -50, 900],
+  "閃蒸區": [105450, 107150, 25400, 27450, -50, 1300],
+  "窯爐區": [103400, 105650, 25600, 27600, -50, 700],
+  "粉碎區": [101950, 104000, 27350, 28650, -50, 1100],
+  "除磁區": [101100, 102050, 27450, 28300, -50, 1200],
+  "包裝區": [101100, 102050, 26600, 27450, -50, 1000],
+  "辦公室": [112900, 114300, 25500, 29400, -50, 330],
+  "實驗室": [112900, 115000, 22200, 25500, -50, 330],
+};
+let curArea = null;
+function setArea(n) {
+  const ab = $("areas");
+  if (!n) {
+    renderer.clippingPlanes = []; curArea = null;
+    lblObjs.forEach(o => { o.userData.out = false; o.visible = !!vis[o.userData.L]; });
+    wallT($("wt").checked);
+    ab.querySelectorAll("button").forEach(b => b.classList.remove("on"));
+    setView("等角"); return;
+  }
+  const [x0, x1, y0, y1, z0, z1] = AREAS[n]; curArea = n;
+  const a = P(x0, y1, z0), b = P(x1, y0, z1);           // three：x 東、y 上、z 南
+  renderer.clippingPlanes = [
+    new THREE.Plane(new THREE.Vector3(1, 0, 0), -a.x), new THREE.Plane(new THREE.Vector3(-1, 0, 0), b.x),
+    new THREE.Plane(new THREE.Vector3(0, 1, 0), -a.y), new THREE.Plane(new THREE.Vector3(0, -1, 0), b.y),
+    new THREE.Plane(new THREE.Vector3(0, 0, 1), -a.z), new THREE.Plane(new THREE.Vector3(0, 0, -1), b.z)];
+  lblObjs.forEach(o => { const p = o.position; const out = p.x < a.x || p.x > b.x || p.z < a.z || p.z > b.z || p.y > b.y + 2;
+    o.userData.out = out; o.visible = !out && !!vis[o.userData.L]; });
+  wallT(true);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, R = Math.max(x1 - x0, y1 - y0, 600) * 1.25 * Math.pow(Math.max(1, 1.2 / cam.aspect), 0.6);   // 手機直式拉遠
+  window.setCam([cx - R * 0.75, cy - R * 0.95, Math.max(z1, 600) + R * 0.75], [cx, cy, Math.max(0, z0) + (z1 - Math.max(0, z0)) * 0.3]);
+  ab.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.textContent === n));
+  shadowKey = ""; fitShadow(); shadowsDirty();
+}
+window.setArea = setArea; window.AREAS = AREAS;
+{ const ab = $("areas");
+  const rb = document.createElement("button"); rb.textContent = "回全廠"; rb.onclick = () => { setArea(null); autoFold(); }; ab.appendChild(rb);
+  Object.keys(AREAS).forEach(n => { const b = document.createElement("button"); b.textContent = n; b.onclick = () => { setArea(n); autoFold(); }; ab.appendChild(b); }); }
+function autoFold() { if (matchMedia("(max-width:600px)").matches && window.uiSet) window.uiSet(true); }
 const vb = $("views");
-Object.keys(VIEWS).forEach(n => { const b = document.createElement("button"); b.textContent = n; b.onclick = () => setView(n); vb.appendChild(b); });
+Object.keys(VIEWS).forEach(n => { const b = document.createElement("button"); b.textContent = n; b.onclick = () => { if (curArea) setArea(null); setView(n); autoFold(); }; vb.appendChild(b); });
 addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); lr.setSize(innerWidth, innerHeight); need(); });
 let idleT = 0, hqDone = true;
 (function loop() {
