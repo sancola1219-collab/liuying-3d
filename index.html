@@ -34,13 +34,20 @@
   #tip { position:fixed; right:12px; bottom:12px; font-size:11px; color:var(--muted); background:var(--panel); padding:4px 8px; border-radius:5px; }
   #load { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 22px; font-size:14px; box-shadow:0 2px 12px #0003; }
   #load[hidden] { display:none; }
+  #ui .hd { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  #ui .hd h1 { margin:0; }
+  #uitog { flex:none; font-size:12px; padding:2px 8px; }
+  #ui.closed { width:auto; max-height:none; overflow:visible; padding:6px 8px 6px 12px; }
+  #ui.closed #uibody { display:none; }
+  @media (max-width:600px){ #ui.closed{ right:auto; } }
   @media (max-width:600px){ #ui{ width:auto; right:12px; max-height:45%; } #tip{ display:none; } }
 </style>
 </head>
 <body>
 <div id="c"></div>
 <div id="ui">
-  <h1>台南柳營廠 3D 規劃模型</h1>
+  <div class="hd"><h1>台南柳營廠 3D 規劃模型</h1><button id="uitog" type="button" aria-expanded="true">收合 ▴</button></div>
+  <div id="uibody">
   <div class="sub">管路版 20261004｜架台細部＋鋼製基座｜管架依製造圖｜車道淨空</div>
   <h2>視角</h2>
   <div class="btns" id="views"></div>
@@ -56,6 +63,7 @@
   <label class="l"><input type="checkbox" id="wt">牆半透明（看室內）</label>
   <h2>群組／圖層 <small>點 ▸ 展開單層</small></h2>
   <div id="tree"></div>
+  </div>
 </div>
 <div id="load">模型載入中…</div>
 <div id="tip">左鍵旋轉／右鍵平移／滾輪縮放　單位 m</div>
@@ -77,6 +85,10 @@ const OX = 110000, OY = 27000;
 const P = (x, y, z) => new THREE.Vector3((x - OX) / 100, z / 100, -(y - OY) / 100);
 const $ = id => document.getElementById(id);
 const loadMsg = t => { $("load").textContent = t; };
+const uiSet = closed => { $("ui").classList.toggle("closed", closed); $("uitog").textContent = closed ? "展開 ▾" : "收合 ▴"; $("uitog").setAttribute("aria-expanded", String(!closed)); };
+{ let st = null; try { st = localStorage.getItem("ui_closed"); } catch (e) {}
+  uiSet(st === null ? matchMedia("(max-width:600px)").matches : st === "1"); }
+$("uitog").onclick = () => { const c = !$("ui").classList.contains("closed"); uiSet(c); try { localStorage.setItem("ui_closed", c ? "1" : "0"); } catch (e) {} };
 
 // ───────── 渲染器（ACES 色調、柔邊陰影；陰影只在場景變動時重算）
 const el = $("c");
