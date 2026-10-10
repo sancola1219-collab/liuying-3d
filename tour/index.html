@@ -67,6 +67,14 @@ body.rec #ctrl,body.rec #hint{display:none}
   #app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto var(--bh);grid-template-areas:"stage" "panel" "bar"}
   #panel{border-right:0;border-top:1px solid var(--line);max-height:46vh;transition:max-height .3s}
   #panel.folded{max-height:92px}
+  /* 10/10 手機實看修正：模型區放大、標籤縮小、引線縮短、右上角不壓字 */
+  #panel{max-height:34vh}#panel.folded{max-height:76px}
+  #brand2{display:none}
+  #no{font-size:36px}#ttl{font-size:22px}#desc{font-size:14px;line-height:1.55}
+  .tag{padding:2px 6px 3px 6px;border-left-width:3px}.tag b{font-size:11px}.tag s{font-size:9.5px}
+  .tag.zone{padding:2px 8px}.tag.zone b{font-size:11px}
+  #ctrl{right:8px;top:8px;gap:5px}#ctrl button{font-size:12px;padding:5px 9px}
+  #subt{font-size:14px;max-width:94%;padding:5px 12px 6px;bottom:8px}
   #brand{padding:10px 16px 0;font-size:12px}
   #pin{padding:4px 16px 14px}
   #no{font-size:44px;margin-top:2px;display:inline-block}
@@ -132,7 +140,7 @@ const loadMsg = t => { $("load").textContent = t; };
 const THREE = await import("three");
 const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
 const { DRACOLoader } = await import("three/addons/loaders/DRACOLoader.js");
-const GLB_VER = "202610102128", GLB_SIZE = 2413892;
+const GLB_VER = "202610102142", GLB_SIZE = 2413892;
 const D = JSON.parse($("deck-data").textContent);
 const AUD = JSON.parse($("deck-audio").textContent || "{}");
 const REC = new URLSearchParams(location.search).has("rec");
@@ -286,7 +294,7 @@ const TAGS = CH.map((ch, i) => (ch.callouts || []).map((c, k) => {
   el.style.setProperty("--c", c.color || ch.color);
   el.innerHTML = `<b>${c.t}</b>` + (c.s ? `<s>${c.s}</s>` : ""); el.style.opacity = 0; tagsEl.appendChild(el);
   const ln = document.createElementNS("http://www.w3.org/2000/svg", "line"); ln.setAttribute("stroke", c.color || ch.color); ln.setAttribute("stroke-width", "1.6"); svg.appendChild(ln);
-  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle"); dot.setAttribute("r", c.zone ? "4" : "5.5"); dot.setAttribute("fill", c.color || ch.color); dot.setAttribute("stroke", "#fff"); dot.setAttribute("stroke-width", "2"); svg.appendChild(dot);
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle"); dot.setAttribute("r", (c.zone ? 4 : 5.5) * (innerWidth < 640 ? 0.65 : 1)); dot.setAttribute("fill", c.color || ch.color); dot.setAttribute("stroke", "#fff"); dot.setAttribute("stroke-width", "2"); svg.appendChild(dot);
   return { el, ln, dot, p: new THREE.Vector3(...c.p), zone: !!c.zone, box: c.box || [0.3, 0.3, 0.6], win: c.win || null, w: 0, h: 0, x: null, y: null, a: 0, k };
 }));
 const _v = new THREE.Vector3();
@@ -300,7 +308,7 @@ function layoutTags(list, W, H, dt, obst = []) {
     const edge = clamp01(Math.min(ax + 40, W + 40 - ax, ay + 40, H + 40 - ay) / 80);
     const a = behind ? 0 : t.a * edge;
     if (!t.w) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
-    const w = t.w, h = t.h, lift = t.zone ? 26 : 58;
+    const w = t.w, h = t.h, lift = (t.zone ? 26 : 58) * (W < 640 ? 0.5 : 1);   // 手機引線縮短
     const coll = (x, y) => { for (const q of placed) if (x < q.x + q.w + 8 && x + w + 8 > q.x && y < q.y + q.h + 6 && y + h + 6 > q.y) return q; return null; };
     // 候選位置：標註點正上方，往上一層層、左右錯開；放不下再試下方。取最近的空位（左右錯開比往上疊優先一點）
     let x = clamp(ax - w / 2, 8, W - w - 8), y = ay - lift - h, best = null;
