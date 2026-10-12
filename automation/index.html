@@ -220,7 +220,7 @@ const loadMsg = t => { $("load").textContent = t; };
 const THREE = await import("three");
 const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
 const { DRACOLoader } = await import("three/addons/loaders/DRACOLoader.js");
-const GLB_VER = "202610121403", GLB_SIZE = 2535056;
+const GLB_VER = "202610121406", GLB_SIZE = 2535056;
 const D = JSON.parse($("deck-data").textContent);
 const AUD = JSON.parse($("deck-audio").textContent || "{}");
 const REC = new URLSearchParams(location.search).has("rec");
@@ -388,6 +388,7 @@ function layoutTags(list, W, H, dt, obst = []) {
     if (t.a <= 0.002) { t.el.style.opacity = 0; t.ln.setAttribute("opacity", 0); t.dot.setAttribute("opacity", 0); t.x = null; continue; }
     _v.copy(t.p).project(cam);
     const ax = (_v.x + 1) / 2 * W, ay = (1 - _v.y) / 2 * H;
+    if (!isFinite(ax) || !isFinite(ay) || !W || !H) { t.el.style.opacity = 0; t.ln.setAttribute("opacity", 0); t.dot.setAttribute("opacity", 0); t.x = null; continue; }
     const behind = _v.z > 1 || _v.z < -1;
     const edge = clamp01(Math.min(ax + 40, W + 40 - ax, ay + 40, H + 40 - ay) / 80);
     const a = behind ? 0 : t.a * edge;
@@ -487,7 +488,7 @@ const AZ0 = [CH[0].cam.az || -40];
 for (let i = 1; i < N; i++) AZ0[i] = CH[i].cam.az0 !== undefined ? CH[i].cam.az0 : AZ0[i - 1] + 360 / CH[i - 1].cam.T * CH[i - 1].D;   // az0：本章指定起始方位（只轉半圈、避開遮擋時用）
 const user = { az: 0, el: 0, zoom: 1 };
 function poseCam(p) {
-  const asp = cam.aspect; let R = p.R * user.zoom * Math.pow(Math.max(1, 1.25 / asp), 0.75);
+  const asp = Math.max(0.2, cam.aspect || 1); let R = p.R * user.zoom * Math.pow(Math.max(1, 1.25 / asp), 0.75);
   let el = clamp(p.el + user.el, 8, 86);
   const minY = D.minCamY || 18;
   if (p.c.y + R * Math.sin(el * DEG) < minY) el = Math.asin(clamp((minY - p.c.y) / R, -1, 1)) / DEG;
@@ -532,6 +533,7 @@ function pageUpdate(i, tau) {
   for (const l of PG.links) {
     const a = l.A.getBoundingClientRect(), b = l.B.getBoundingClientRect();
     const oa = parseFloat(getComputedStyle(l.A).opacity) * parseFloat(getComputedStyle(l.B).opacity);
+    if (!a.width || !b.width) continue;
     const ax = a.left + a.width / 2 - R0.left, ay = a.top + a.height / 2 - R0.top, bx = b.left + b.width / 2 - R0.left, by = b.top + b.height / 2 - R0.top;
     l.ln.setAttribute("x1", ax); l.ln.setAttribute("y1", ay); l.ln.setAttribute("x2", bx); l.ln.setAttribute("y2", by); l.ln.setAttribute("opacity", 0.5 * oa);
     l.ds.forEach((d, k) => { const f = ((t * l.v) + k / l.n) % 1; d.setAttribute("cx", ax + (bx - ax) * f); d.setAttribute("cy", ay + (by - ay) * f); d.setAttribute("opacity", oa); });
