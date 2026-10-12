@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>台南柳營廠 自動化系統導覽</title>
+<style>
+:root{
+  --bg:#f3f4f2; --panel:#fbfbf9; --ink:#1c2430; --ink2:#5a6472; --ink3:#8a929c; --line:#dfe2e0;
+  --acc:#d9622b; --acc2:#f6e3d8;
+  --font:"Noto Sans TC","Microsoft JhengHei","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --pw:clamp(360px,30vw,560px); --bh:66px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+#app{position:fixed;inset:0;display:grid;grid-template-columns:var(--pw) 1fr;grid-template-rows:1fr var(--bh);grid-template-areas:"panel stage" "bar bar"}
+#panel{grid-area:panel;background:var(--panel);border-right:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column}
+#brand{display:flex;justify-content:space-between;align-items:center;padding:22px 34px 0;font-size:14px;letter-spacing:.18em;color:var(--ink3)}
+#brand b{color:var(--ink);font-weight:700;letter-spacing:.12em}
+#pin{flex:1;overflow:auto;padding:10px 34px 24px;scrollbar-width:thin}
+#no{font-size:118px;line-height:1;font-weight:200;color:var(--acc);letter-spacing:-.02em;margin-top:18px;font-variant-numeric:tabular-nums}
+#no small{font-size:20px;color:var(--ink3);font-weight:400;letter-spacing:.1em;margin-left:10px;vertical-align:top;position:relative;top:16px}
+#ttl{font-size:46px;font-weight:800;margin:8px 0 4px;line-height:1.15;letter-spacing:.02em}
+#sub{font-size:18px;color:var(--ink2);margin:0 0 18px;padding-left:12px;border-left:4px solid var(--acc)}
+#desc{font-size:19px;line-height:1.75;color:#333b46;margin:0 0 20px}
+#keys{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;margin-bottom:18px}
+.key{border-top:1px solid var(--line);padding:12px 0 8px}
+.key .v{font-size:38px;font-weight:800;color:var(--acc);line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.key .u{font-size:17px;font-weight:600;color:var(--ink2);margin-left:5px}
+.key .l{font-size:15px;color:var(--ink2);margin-top:4px;line-height:1.35}
+#legend{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14px;color:var(--ink2)}
+#legend span{display:inline-flex;align-items:center;gap:7px}
+#legend i{display:inline-block;width:14px;height:14px;border-radius:3px}
+#legend i.dot{border-radius:50%;width:12px;height:12px;border:2px solid #fff;box-shadow:0 0 0 1.5px currentColor}
+#legend i.flow{width:16px;height:12px;border-radius:0;clip-path:polygon(0 25%,60% 25%,60% 0,100% 50%,60% 100%,60% 75%,0 75%)}
+#legend i.role{width:12px;height:16px;border-radius:6px 6px 3px 3px;border-top:5px solid #fff}
+#legend i.ghost{background:repeating-linear-gradient(45deg,#c9ced3 0 3px,transparent 3px 6px);border:1px solid #b9bfc5}
+#fold{display:none}
+#keys.k3{grid-template-columns:repeat(3,1fr)}
+#io{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+#io span{display:inline-flex;align-items:baseline;gap:5px;border-radius:5px;padding:5px 9px;font-size:14px;color:#26303c;background:color-mix(in srgb,var(--k) 16%,#fff);border:1px solid color-mix(in srgb,var(--k) 45%,#fff)}
+#io span b{font-size:20px;font-weight:800;color:var(--k);font-variant-numeric:tabular-nums}
+#io span.z{opacity:.45}
+#design{margin:0 0 16px;padding:0;list-style:none}
+#design li{position:relative;padding:4px 0 4px 18px;font-size:16px;line-height:1.45;color:#2b3440}
+#design li:before{content:"";position:absolute;left:2px;top:12px;width:8px;height:8px;border-radius:2px;background:var(--acc)}
+#dtitle{font-size:13px;letter-spacing:.14em;color:var(--ink3);margin:2px 0 4px}
+#legend i.box{border-radius:2px;width:12px;height:16px}
+#page{position:absolute;inset:0;background:#f3f4f2;opacity:0;display:none;container-type:size;overflow:hidden}
+#page .pg{position:absolute;inset:0;padding:3.2cqh 3cqw 13cqh;font-size:min(1.45cqw,2.3cqh);color:#1c2430}
+#page svg.pl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+#page [data-a]{opacity:0}
+.chip{display:inline-block;border:1px solid #cfd6de;background:#fff;border-radius:4px;padding:.15em .5em;margin:.12em .25em .12em 0;font-size:.92em;white-space:nowrap}
+.arch{display:grid;grid-template-columns:1fr 16em;gap:1.4em;height:100%}
+.lyrs{display:flex;flex-direction:column;gap:.7em;height:100%}
+.lyr{flex:1;display:grid;grid-template-columns:7.2em 1fr 13em;align-items:center;gap:1em;background:#fff;border:1px solid #dfe3e6;border-left:.45em solid var(--c);border-radius:.4em;padding:.4em 1em;position:relative;z-index:4}
+.lyr .lv{font-size:2em;color:var(--c);line-height:1}.lyr .lv small{display:block;font-size:.42em;color:#5a6472;margin-top:.25em;letter-spacing:.1em}
+.lyr .lt{font-size:1.25em;font-weight:800;margin-bottom:.2em}
+.lyr .ln{font-size:1.02em;color:#334;font-weight:700;text-align:right}
+.zones{display:flex;flex-direction:column;gap:.5em;height:100%}
+.zn{border-radius:.4em;padding:.6em .8em;color:#fff}.zn b{display:block;font-size:1.4em}.zn span{font-size:.92em;opacity:.92}
+.zit{background:#6a3fb5;flex:1}.zdmz{background:#2563c9;flex:1}.zot{background:#13897d;flex:3}
+.zbar{background:#c62828;color:#fff;font-weight:700;text-align:center;padding:.55em .4em;border-radius:.3em;font-size:.95em}
+.two{display:grid;grid-template-columns:1.55fr 1fr;gap:1.6em;height:100%}.two .col{min-width:0}
+.tb{width:100%;border-collapse:collapse;background:#fff;font-size:1em}
+.tb th,.tb td{border-bottom:1px solid #e3e6e9;padding:.42em .55em;text-align:left;vertical-align:middle}
+.tb thead th{background:#0f4c81;color:#fff;font-weight:700;font-size:.95em}
+.tb tbody th{font-weight:700;white-space:nowrap}
+.tb .pd{font-weight:700;color:#0f4c81}.tb .qi{color:#5a6472;text-align:center}
+.tb.io td{text-align:center;font-variant-numeric:tabular-nums}.tb.io td.bold{font-weight:800}.tb.io td.com{color:#0d8a86;font-size:.9em;white-space:nowrap}
+.tb.io i{color:#b4bac1;font-style:normal}.tb.io tr.tot{background:#eef3f8}.tb.io tr.tot th,.tb.io tr.tot td{font-weight:800;border-top:2px solid #0f4c81}
+.tb.io th,.tb.io td{padding:.24em .5em}
+.cards{display:flex;flex-direction:column;gap:.7em}
+.card{flex:1;background:#fff;border:1px solid #dfe3e6;border-radius:.5em;padding:.6em .9em .6em 3.2em;position:relative}
+.card em{position:absolute;left:.6em;top:.45em;font-style:normal;font-size:1.9em;font-weight:200;color:#0f4c81}
+.card b{display:block;font-size:1.25em;margin-bottom:.2em}.card p{margin:0;color:#3b4552;line-height:1.45}
+.side{display:flex;flex-direction:column;gap:.8em}
+.kpi{background:#fff;border:1px solid #dfe3e6;border-radius:.5em;padding:.7em 1em}
+.kpi>b{font-size:2.4em;font-weight:800;color:#0f4c81;margin-right:.3em;font-variant-numeric:tabular-nums}.kpi small{display:block;color:#5a6472;letter-spacing:.06em}
+.kpi.big>b{font-size:3em}.kpi.ex span{line-height:1.5}
+.stk{display:flex;height:3.1em;border-radius:.3em;overflow:hidden;margin-bottom:.35em}.stk span{color:#fff;font-weight:700;font-size:.85em;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.15;white-space:nowrap;overflow:hidden}
+.net{display:flex;flex-direction:column;gap:.55em;height:100%}
+.zone{position:relative;display:flex;gap:.8em;align-items:stretch;border:2px dashed;border-radius:.6em;padding:.55em .8em .55em 5.2em}
+.zone>i{position:absolute;left:.7em;top:50%;transform:translateY(-50%);font-style:normal;font-weight:800;font-size:1.25em}
+.zone.it{border-color:#6a3fb5}.zone.it>i{color:#6a3fb5}.zone.dmz{border-color:#2563c9}.zone.dmz>i{color:#2563c9}.zone.ot{border-color:#13897d;flex:1;flex-direction:column}.zone.ot>i{color:#13897d}
+.nd{flex:1;background:#fff;border:1px solid #cfd6de;border-radius:.4em;padding:.4em .6em;position:relative;z-index:4}.nd b{display:block;font-size:1.05em}.nd span{font-size:.86em;color:#5a6472}
+.nd.core{background:#0f6fd6;border-color:#0f6fd6;color:#fff;flex:0 0 auto;align-self:center;padding:.5em 2em;text-align:center}.nd.core span{color:#dbe8ff}
+.nd.jump{border-color:#c62828}.ring{display:flex;gap:.6em}.nd.sw{border-color:#13897d}.nd.fld{flex:0 0 auto;background:#eef7f5}
+.fw{align-self:center;background:#c62828;color:#fff;font-weight:700;padding:.35em 1.6em;border-radius:.3em;position:relative;z-index:4}
+.note{color:#0f4c81;font-weight:700;margin-top:.3em}
+.gantt{display:flex;flex-direction:column;height:100%;padding-left:12.5em;position:relative}
+.gh{position:relative;height:1.6em;border-bottom:1px solid #c9d0d7}.gh span{position:absolute;bottom:.2em;font-size:.85em;color:#5a6472;transform:translateX(-10%)}
+.gb{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-around}
+.gr{position:relative;height:2.6em}.gr>b{position:absolute;left:-12.5em;width:12em;top:.5em;font-size:1.02em}
+.gt{position:absolute;inset:0}.gt i{position:absolute;top:.25em;height:1.2em;background:#0f6fd6;border-radius:.3em}.gt span{position:absolute;top:1.55em;font-size:.84em;color:#3b4552;white-space:nowrap}
+.gm{position:absolute;inset:0;pointer-events:none}.ms{position:absolute;top:0;bottom:0;border-left:2px dashed #c62828}.ms span{position:absolute;top:-.1em;left:.3em;background:#c62828;color:#fff;font-size:.8em;padding:.1em .4em;border-radius:.2em;white-space:nowrap}
+.bg{display:grid;grid-template-columns:12em 1fr;align-items:center;gap:.6em;height:calc((100% - 1em)/13)}
+.bg b{font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bt{position:relative;height:70%}.bt i{position:absolute;left:0;top:0;bottom:0;background:#0f6fd6;border-radius:.2em}.bt span{position:absolute;right:.4em;top:50%;transform:translateY(-50%);font-weight:700;font-variant-numeric:tabular-nums}
+@container (aspect-ratio < 1){
+  #page .pg{font-size:min(2.55cqw,1.7cqh);padding:2cqh 2.5cqw 11cqh}
+  .arch{grid-template-columns:1fr;grid-template-rows:1fr auto}.zones{flex-direction:row;height:auto}.zn,.zbar{flex:1}.zot{flex:1.4}
+  .lyr{grid-template-columns:5.2em 1fr;padding:.3em .6em}.lyr .ln{grid-column:1/-1;text-align:left;font-size:.92em}
+  .two{grid-template-columns:1fr;grid-template-rows:auto auto;gap:.8em}.cards{display:grid;grid-template-columns:1fr 1fr;gap:.5em}.card p{font-size:.9em}
+  .tb.sm td:nth-child(3){display:none}.tb.sm th:nth-child(3){display:none}
+  .io2 .side{display:grid;grid-template-columns:1fr 1fr;gap:.5em}.kpi>b{font-size:1.7em}
+  .zone{padding-left:.6em;padding-top:1.6em;flex-wrap:wrap}.zone>i{top:.2em;transform:none}.ring{flex-wrap:wrap}.ring .nd{flex:1 1 30%}
+  .gantt{padding-left:0}.gr{height:3.2em}.gr>b{position:static;display:block;width:auto;font-size:.95em}.gt{top:1.3em}
+  .bud .side{display:grid;grid-template-columns:1fr 1fr;gap:.5em}.bg{grid-template-columns:9em 1fr;height:2.1em}.kpi.big>b{font-size:1.8em}
+}
+#stage{grid-area:stage;position:relative;overflow:hidden;background:linear-gradient(#e9eef2,#f3f4f1);touch-action:none}
+#gl{position:absolute;inset:0}
+#gl canvas{display:block;width:100%;height:100%}
+#lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#tags{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;left:0;top:0;background:rgba(255,255,255,.95);border:1px solid rgba(28,36,48,.14);border-left:4px solid var(--c,#d9622b);border-radius:3px;padding:5px 10px 6px 9px;white-space:nowrap;box-shadow:0 2px 8px rgba(20,30,40,.10);will-change:transform,opacity}
+.tag b{display:block;font-size:17px;font-weight:700;color:var(--ink);line-height:1.25}
+.tag s{display:block;text-decoration:none;font-size:14px;color:var(--ink2);line-height:1.25}
+.tag.zone{border-left-width:0;border-radius:14px;padding:4px 12px;background:var(--c);border-color:transparent;color:#fff}
+.tag.zone b{color:#fff;font-size:15px}
+#subt{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);max-width:86%;text-align:center;font-size:29px;line-height:1.45;color:#fff;background:rgba(24,30,38,.74);padding:8px 22px 10px;border-radius:6px;opacity:0;pointer-events:none;letter-spacing:.03em}
+#ctrl{position:absolute;right:18px;top:16px;display:flex;gap:8px;align-items:center}
+#ctrl button{border:1px solid rgba(28,36,48,.16);background:rgba(255,255,255,.92);color:var(--ink);font-size:15px;padding:8px 14px;border-radius:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+#ctrl button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#hint{position:absolute;right:16px;bottom:12px;font-size:13px;color:var(--ink2);pointer-events:none;background:rgba(255,255,255,.82);padding:4px 10px;border-radius:12px}
+#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ink2);background:rgba(243,244,242,.9)}
+#bar{grid-area:bar;display:flex;align-items:stretch;background:#fff;border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+#bar::-webkit-scrollbar{display:none}
+#bar button{flex:1 0 auto;min-width:64px;border:0;border-right:1px solid #eef0ee;background:none;padding:8px 8px 10px;text-align:left;position:relative;color:var(--ink3)}
+#bar button em{display:block;font-style:normal;font-size:13px;font-weight:700;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+#bar button span{display:block;font-size:14px;white-space:nowrap;margin-top:2px}
+#bar button.on{color:var(--ink);background:#f6f7f5}
+#bar button.on em{color:var(--c,#d9622b)}
+#bar button i{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--c,#d9622b)}
+#bar button.done i{width:100%;opacity:.25}
+body.rec #ctrl,body.rec #hint{display:none}
+/* 手機直式：模型在上、資訊欄在下可收合 */
+@media (max-width:820px) and (orientation:portrait){
+  :root{--bh:58px}
+  #app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto var(--bh);grid-template-areas:"stage" "panel" "bar"}
+  #panel{border-right:0;border-top:1px solid var(--line);max-height:46vh;transition:max-height .3s}
+  #panel.folded{max-height:92px}
+  /* 10/10 手機實看修正：模型區放大、標籤縮小、引線縮短、右上角不壓字 */
+  #panel{max-height:34vh}#panel.folded{max-height:76px}
+  #brand2{display:none}
+  #no{font-size:36px}#ttl{font-size:22px}#desc{font-size:14px;line-height:1.55}
+  .tag{padding:2px 6px 3px 6px;border-left-width:3px}.tag b{font-size:11px}.tag s{font-size:9.5px}
+  .tag.zone{padding:2px 8px}.tag.zone b{font-size:11px}
+  #ctrl{right:8px;top:8px;gap:5px}#ctrl button{font-size:12px;padding:5px 9px}
+  #subt{font-size:14px;max-width:94%;padding:5px 12px 6px;bottom:8px}
+  #brand{padding:10px 16px 0;font-size:12px}
+  #pin{padding:4px 16px 14px}
+  #no{font-size:44px;margin-top:2px;display:inline-block}
+  #no small{font-size:13px;top:4px}
+  #ttl{font-size:26px;display:inline-block;margin:0 0 0 10px;vertical-align:6px}
+  #sub{font-size:14px;margin:6px 0 10px}
+  #desc{font-size:15px;line-height:1.6}
+  .key .v{font-size:26px}.key .u{font-size:14px}.key .l{font-size:13px}
+  #fold{display:block;position:absolute;right:12px;top:8px;border:1px solid var(--line);background:#fff;border-radius:14px;font-size:13px;padding:4px 12px;color:var(--ink2)}
+  #ctrl{right:10px;top:10px;gap:6px}#ctrl button{font-size:13px;padding:6px 10px}
+  #hint{display:none}
+  #subt{font-size:16px;bottom:10px}
+  .tag b{font-size:13px}.tag s{font-size:11px}.tag{padding:3px 7px 4px 7px}
+  #bar button{min-width:58px}#bar button span{font-size:12px}
+  body.pgch #panel{max-height:118px}
+}
+@media (max-width:1100px) and (orientation:landscape){
+  :root{--pw:clamp(260px,32vw,360px)}
+  #no{font-size:64px}#ttl{font-size:30px}#desc{font-size:15px}.key .v{font-size:26px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="inapp" style="display:none;position:fixed;left:0;right:0;top:0;z-index:99;background:#b45309;color:#fff;padding:8px 12px;font-size:14px;text-align:center">LINE／FB 內建瀏覽器可能開不動 3D，請點右上角「…」→「用預設瀏覽器開啟」（Chrome／Safari）</div>
+<script>if (/Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent)) document.getElementById("inapp").style.display = "block";</script>
+
+<div id="app">
+  <aside id="panel">
+    <div id="brand"><b>台南柳營廠</b><span id="brand2">自動化系統規劃與設計</span></div>
+    <button id="fold" aria-expanded="true">收合 ▾</button>
+    <div id="pin">
+      <div id="no">00</div>
+      <h1 id="ttl"></h1>
+      <p id="sub"></p>
+      <p id="desc"></p>
+      <div id="keys"></div>
+      <div id="io"></div>
+      <div id="dtitle"></div>
+      <ul id="design"></ul>
+      <div id="legend"></div>
+    </div>
+  </aside>
+  <main id="stage">
+    <div id="gl"></div>
+    <div id="page"></div>
+    <svg id="lines"></svg>
+    <div id="tags"></div>
+    <div id="subt"></div>
+    <div id="ctrl">
+      <button id="bPlay">▶ 自動播放</button>
+      <button id="bVoice" class="on">旁白</button>
+      <button id="bMusic" class="on">音樂</button>
+      <button id="bSub" class="on">字幕</button>
+      <button id="bVideo">看影片</button>
+      <button id="bFull">全螢幕</button>
+    </div>
+    <div id="hint">← → 或空白鍵換章　拖曳旋轉　滾輪縮放</div>
+    <div id="load">載入模型中…</div>
+  </main>
+  <nav id="bar"></nav>
+</div>
+
+
+<script type="application/json" id="deck-data">{"title":"台南柳營廠 自動化系統規劃與設計｜設計產能 2.5 萬噸／年","brand2":"自動化系統導覽・設計產能 2.5 萬噸","chapters":[{"id":"c00","no":"00","short":"封面","title":"台南柳營廠 自動化系統","sub":"規劃與設計｜設計產能每年 2.5 萬噸","desc":"全廠以橫河 CENTUM VP 為中控、ProSafe-RS 為獨立安全系統、Exaquantum 存歷史資料與戰情；光華整機保留 PLC，以子系統通訊整合。","kind":"3d","color":"#2e3a4b","keys":[["26","站","I/O 站（產線 17、廠務與電力 9）"],["453","點","戰情監控點"],["1,950","點","硬體 I/O（含 20% 備用）"],["225","條","警報規則"]],"lead":1.0,"aid":"c00","voice":28.032,"D":31.43,"subs":[[1.05,5.56,"大家好，我是台南柳營廠自動化專案的主辦人"],[5.56,9.6,"柳營廠設計產能每年兩萬五千噸磷酸鐵"],[9.6,13.15,"這支影片我先講架構、選擇理由和資安"],[13.15,17.29,"再一站一站看每個分區怎麼控制、有多少點位"],[17.29,19.65,"最後是時程、預算和效益"],[19.65,23.18,"全廠二十六個 I/O 站、四百五十三個監控點"],[23.18,25.49,"硬體 I/O 一千九百五十點"],[25.49,29.02,"全部接進橫河的 CENTUM VP 控制系統"]],"text":"大家好，我是台南柳營廠自動化專案的主辦人。柳營廠設計產能每年兩萬五千噸磷酸鐵。這支影片我先講架構、選擇理由和資安，再一站一站看每個分區怎麼控制、有多少點位，最後是時程、預算和效益。全廠二十六個 I/O 站、四百五十三個監控點，硬體 I/O 一千九百五十點，全部接進橫河的 CENTUM VP 控制系統。","cam":{"c":[-16.5,2,-2.5],"R":235,"el":30,"T":110,"az":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[{"p":[34.0,3.0,-2.0],"t":"中控室・戰情中心","s":"HIS 操作站＋Exaquantum＋影像牆","box":[1,1,2],"color":"#ff7a1a","panel":true},{"p":[6.0,2.2,-9.5],"t":"Vnet/IP 控制網路核心","s":"雙重化・E1 配電站","box":[1,1,2],"color":"#0f6fd6","panel":true}],"sig":{"paths":[{"pts":[[-24.0,2.2,-60.78],[-24.0,11.0,-60.78],[6.0,11.0,-60.78],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-17.5,2.2,-39.0],[-17.5,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-14.8,2.2,-39.0],[-14.8,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-48.0,2.2,-10.0],[-48.0,11.0,-10.0],[6.0,11.0,-10.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-17.0,2.2,-23.3],[-17.0,11.0,-23.3],[6.0,11.0,-23.3],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-16.8,2.2,17.65],[-16.8,11.0,17.65],[6.0,11.0,17.65],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-33.0,2.2,-1.9],[-33.0,11.0,-1.9],[6.0,11.0,-1.9],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-58.5,2.2,12.36],[-58.5,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-55.8,2.2,12.36],[-55.8,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-75.75,2.2,-12.5],[-75.75,11.0,-12.5],[6.0,11.0,-12.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-87.99,2.2,-12.5],[-87.99,11.0,-12.5],[6.0,11.0,-12.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-85.8,2.2,12.4],[-85.8,11.0,12.4],[6.0,11.0,12.4],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-89.0,6.199999999999999,-21.5],[-89.0,11.0,-21.5],[6.0,11.0,-21.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[9.5,1.4,3.8],[9.5,11.0,3.8],[6.0,11.0,3.8],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[6.0,5.6,42.0],[6.0,11.0,42.0],[6.0,11.0,42.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[11.0,1.4,28.2],[11.0,11.0,28.2],[6.0,11.0,28.2],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[17.0,1.4,-57.0],[17.0,11.0,-57.0],[6.0,11.0,-57.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[13.4,2.2,46.6],[13.4,11.0,46.6],[6.0,11.0,46.6],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[6.0,1.4,-6.4],[6.0,11.0,-6.4],[6.0,11.0,-6.4],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[6.0,2.2,-9.5],[6.0,11.0,-9.5],[34.0,11.0,-9.5],[34.0,11.0,-2.0],[34.0,3.0,-2.0]],"c":"#ff7a1a","n":6,"v":12.0,"bus":true}],"marks":[],"panels":["RIO-01","RIO-02","SIS-01","RIO-03","RIO-04","RIO-05","RIO-06","RIO-07","SIS-02","RIO-08","RIO-09","RIO-10","SW-3","IGW-ENV-01","IGW-ENV-02","MP-U2","IGW-ENV-03","U5-IO","IGW-PWR","core","ctrl"]},"legend":[["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c01","no":"01","short":"整體架構","title":"整體架構 L0～L4","sub":"ISA-95 五層＋OT／IT 隔離","desc":"現場儀表 → CENTUM VP／ProSafe-RS → HIS・Exaquantum・戰情中心 → MES → ERP；OT 資料只經防火牆與資料二極體單向往上。","kind":"page","color":"#0f4c81","keys":[["5","層","ISA-95 L0～L4"],["3","組","冗餘 FCS 現場控制站"]],"lead":1.3,"aid":"c01","voice":38.136,"D":41.84,"subs":[[1.35,4.96,"整體架構照 ISA-95 分五層"],[4.96,6.3,"L0 是現場儀表"],[6.3,8.53,"壓力、差壓用 EJA、EJX"],[8.53,11.64,"流量用 ADMAG 和 ROTAMASS"],[11.64,13.43,"pH 用 FLXA21"],[13.42,14.43,"L1 是控制層"],[14.43,17.57,"CENTUM VP 三組冗餘 FCS 現場控制站"],[17.57,19.33,"接 N-IO 遠端 I/O"],[19.33,21.59,"控制網路走雙重化的 Vnet/IP"],[21.59,24.1,"安全系統是獨立的 ProSafe-RS"],[24.1,25.92,"L2 是 HIS 操作站"],[25.92,28.86,"Exaquantum 歷史資料和戰情中心"],[28.86,30.26,"儀表診斷用 PRM"],[30.26,33.74,"L3 是 MES，L4 是公司的 ERP"],[33.74,36.34,"L0 到 L2 屬於 OT 區"],[36.34,39.42,"資料只能經防火牆和資料二極體單向往上"]],"text":"整體架構照 ISA-95 分五層。L0 是現場儀表，壓力、差壓用 EJA、EJX，流量用 ADMAG 和 ROTAMASS，pH 用 FLXA21。L1 是控制層：CENTUM VP 三組冗餘 FCS 現場控制站，接 N-IO 遠端 I/O，控制網路走雙重化的 Vnet/IP；安全系統是獨立的 ProSafe-RS。L2 是 HIS 操作站、Exaquantum 歷史資料和戰情中心，儀表診斷用 PRM。L3 是 MES，L4 是公司的 ERP。L0 到 L2 屬於 OT 區，資料只能經防火牆和資料二極體單向往上。","cam":{"c":[-17.0,2,-2.0],"R":240,"el":34,"T":160,"az0":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[],"sig":{"paths":[],"marks":[],"panels":[]},"legend":[],"page":"<div class=\"pg pg-arch \" data-links='[[&quot;arL0&quot;, &quot;arL1&quot;, &quot;#13897d&quot;, 0.55, 3], [&quot;arL1&quot;, &quot;arL2&quot;, &quot;#2563c9&quot;, 0.55, 3], [&quot;arL2&quot;, &quot;arL3&quot;, &quot;#2563c9&quot;, 0.55, 3], [&quot;arL3&quot;, &quot;arL4&quot;, &quot;#6a3fb5&quot;, 0.55, 3]]'><svg class=\"pl\"><\/svg><div class='arch'><div class='lyrs'><div class='lyr' id='arL4' style='--c:#6a3fb5' data-a=\"31.75\"><b class='lv'>L4<small>企業層<\/small><\/b><div class='lb'><div class='lt'>ERP（公司既有）<\/div><div class='chips'><span class='chip'>工單<\/span><span class='chip'>批號放行<\/span><span class='chip'>成本<\/span><\/div><\/div><div class='ln'>ISA-95 工單與批號雙向<\/div><\/div><div class='lyr' id='arL3' style='--c:#2563c9' data-a=\"30.26\"><b class='lv'>L3<small>製造營運<\/small><\/b><div class='lb'><div class='lt'>MES・LIMS 介接<\/div><div class='chips'><span class='chip'>AVEVA MES（規劃中）<\/span><span class='chip'>ISA-95／OPC UA 介接<\/span><span class='chip'>電子批次紀錄・譜系<\/span><\/div><\/div><div class='ln'>MES 版本與授權規模規劃中<\/div><\/div><div class='lyr' id='arL2' style='--c:#2563c9' data-a=\"24.10\"><b class='lv'>L2<small>監控層<\/small><\/b><div class='lb'><div class='lt'>HIS・Exaquantum・戰情中心<\/div><div class='chips'><span class='chip'>HIS 操作站 6＋ENG 工程站 2<\/span><span class='chip'>Exaquantum 歷史資料（PIMS）<\/span><span class='chip'>PRM 設備管理<\/span><\/div><\/div><div class='ln'>453 監控點 × 1 s・225 條警報<\/div><\/div><div class='lyr' id='arL1' style='--c:#13897d' data-a=\"13.43\"><b class='lv'>L1<small>控制層<\/small><\/b><div class='lb'><div class='lt'>CENTUM VP＋獨立 ProSafe-RS<\/div><div class='chips'><span class='chip'>FCS 冗餘 ×3・Vnet/IP 雙重化<\/span><span class='chip'>N-IO 遠端 I/O・CENTUM VP Batch<\/span><span class='chip'>ProSafe-RS 安全系統 SIL 2<\/span><\/div><\/div><div class='ln'>硬體 I/O 1,950・SIS 220<\/div><\/div><div class='lyr' id='arL0' style='--c:#13897d' data-a=\"4.96\"><b class='lv'>L0<small>現場層<\/small><\/b><div class='lb'><div class='lt'>儀表・光華整機子系統<\/div><div class='chips'><span class='chip'>EJA／EJX 壓力差壓<\/span><span class='chip'>ADMAG・ROTAMASS 流量<\/span><span class='chip'>FLXA21 pH／電導<\/span><\/div><\/div><div class='ln'>26 個 I/O 站・光華整機 Modbus TCP<\/div><\/div><\/div><div class='zones'><div class='zn zit' data-a=\"35.52\"><b>IT<\/b><span>ERP・辦公<\/span><\/div><div class='zn zdmz' data-a=\"35.52\"><b>DMZ<\/b><span>MES・Exaquantum 鏡像・跳板機<\/span><\/div><div class='zbar' data-a=\"37.80\">防火牆＋資料二極體　OT → IT 單向<\/div><div class='zn zot' data-a=\"35.52\"><b>OT 區<\/b><span>L0～L2 控制與監控<br>Vnet/IP・IEC 62443<\/span><\/div><\/div><\/div><\/div>"},{"id":"c02","no":"02","short":"為什麼選","title":"為什麼選這套","sub":"橫河 CENTUM VP＋ProSafe-RS＋台灣在地支援","desc":"化工批次實績、DCS 與 SIS 同一工程環境但安全功能獨立、台灣橫河在地支援、非中資可驗證。","kind":"page","color":"#0f4c81","keys":[["4","個","選擇理由"],["IEC 61511","","SIS 與 DCS 分離"]],"lead":1.3,"aid":"c02","voice":37.248,"D":40.95,"subs":[[1.35,3.54,"為什麼選橫河？"],[3.54,4.98,"第一，化工製程實績"],[4.98,8.29,"CENTUM 系列在連續與批次化工廠用得最多"],[8.29,10.88,"我們的化鐵、合成、混合正是批次製程"],[10.88,15.34,"用 CENTUM VP Batch 照 ISA-88 管配方"],[15.34,17.94,"第二，批次和安全一體規劃但功能分離"],[17.94,22.41,"ProSafe-RS 和 CENTUM VP 同一套工程環境"],[22.41,23.71,"但安全控制器獨立"],[23.71,27.32,"符合 IEC 61511 保護層要互相獨立的要求"],[27.32,30.12,"第三，台灣橫河在地支援"],[30.12,33.15,"工程、備品和維修都在台灣"],[33.15,38.55,"第四，日本原廠、非中資，原產地證明拿得出來"]],"text":"為什麼選橫河？第一，化工製程實績：CENTUM 系列在連續與批次化工廠用得最多，我們的化鐵、合成、混合正是批次製程，用 CENTUM VP Batch 照 ISA-88 管配方。第二，批次和安全一體規劃但功能分離：ProSafe-RS 和 CENTUM VP 同一套工程環境，但安全控制器獨立，符合 IEC 61511 保護層要互相獨立的要求。第三，台灣橫河在地支援，工程、備品和維修都在台灣。第四，日本原廠、非中資，原產地證明拿得出來。","cam":{"c":[-17.0,2,-2.0],"R":240,"el":34,"T":160,"az0":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[],"sig":{"paths":[],"marks":[],"panels":[]},"legend":[],"page":"<div class=\"pg pg-why \" data-links='[]'><svg class=\"pl\"><\/svg><div class='two'><div class='col'><table class='tb sm'><thead><tr><th>層級<\/th><th>產品<\/th><th>柳營用在哪<\/th><th>報價<\/th><\/tr><\/thead><tbody><tr data-a=\"0.80\"><th>DCS<\/th><td class='pd'>CENTUM VP（FCS 冗餘 ×3）<\/td><td>化鐵合成、後段、廠務<\/td><td class='qi'>A1<\/td><\/tr><tr data-a=\"1.10\"><th>控制網路<\/th><td class='pd'>Vnet/IP 雙重化<\/td><td>FCS・SCS・HIS<\/td><td class='qi'>A／E<\/td><\/tr><tr data-a=\"1.40\"><th>遠端 I/O<\/th><td class='pd'>N-IO<\/td><td>10 分區 RIO・1,950 點<\/td><td class='qi'>A2<\/td><\/tr><tr data-a=\"1.70\"><th>操作／工程<\/th><td class='pd'>HIS 6・ENG 2<\/td><td>中控室・戰情中心<\/td><td class='qi'>A5<\/td><\/tr><tr data-a=\"2.00\"><th>批次<\/th><td class='pd'>CENTUM VP Batch（ISA-88）<\/td><td>化鐵・合成・混合配方<\/td><td class='qi'>A6<\/td><\/tr><tr data-a=\"2.30\"><th>安全 SIS<\/th><td class='pd'>ProSafe-RS（SIL 2）<\/td><td>氫氣・釜高溫高壓・窯超溫・高高液位 220 點<\/td><td class='qi'>B<\/td><\/tr><tr data-a=\"2.60\"><th>歷史資料<\/th><td class='pd'>Exaquantum（PIMS）<\/td><td>453 點 × 1 s・戰情・能源報表<\/td><td class='qi'>J<\/td><\/tr><tr data-a=\"2.90\"><th>設備管理<\/th><td class='pd'>PRM<\/td><td>HART 儀表診斷・預知保養<\/td><td class='qi'>C／J<\/td><\/tr><tr data-a=\"3.20\"><th>現場儀表<\/th><td class='pd'>EJA／EJX・ADMAG・ROTAMASS・FLXA21<\/td><td>壓力・流量・科氏・pH 電導<\/td><td class='qi'>C<\/td><\/tr><tr data-a=\"3.50\"><th>子系統通訊<\/th><td class='pd'>Modbus TCP<\/td><td>光華整機・廠務盤・協雅<\/td><td class='qi'>D<\/td><\/tr><tr data-a=\"3.80\"><th>MES<\/th><td class='pd'>AVEVA MES（規劃中）<\/td><td>ISA-95／OPC UA 介接<\/td><td class='qi'>F<\/td><\/tr><\/tbody><\/table><\/div><div class='col cards'><div class='card' id='sw0' data-a=\"3.54\"><em>1<\/em><b>化工批次實績<\/b><p>CENTUM 系列在連續與批次化工廠用得最多；化鐵、合成、混合用 CENTUM VP Batch 照 ISA-88 管配方<\/p><\/div><div class='card' id='sw1' data-a=\"15.34\"><em>2<\/em><b>DCS 與 SIS 分離<\/b><p>ProSafe-RS 與 CENTUM VP 同一工程環境，但安全控制器獨立：IEC 61511 要求保護層互相獨立<\/p><\/div><div class='card' id='sw2' data-a=\"27.32\"><em>3<\/em><b>在地支援<\/b><p>台灣橫河：工程、備品、維修在台灣；台灣主承包商整合，我們養 2 名控制工程師<\/p><\/div><div class='card' id='sw3' data-a=\"33.15\"><em>4<\/em><b>非中資可驗證<\/b><p>日本原廠，訂購規格要求原產地證明，客戶稽核拿得出文件<\/p><\/div><\/div><\/div><\/div>"},{"id":"c03","no":"03","short":"網路資安","title":"網路與資安","sub":"IEC 62443｜OT／DMZ／IT 三區","desc":"Vnet/IP 雙重化控制網路＋分區 OT 交換器；OT 到 IT 只經防火牆與資料二極體單向；遠端維運走跳板機。","kind":"page","color":"#0f4c81","keys":[["38","台","管理型工業交換器"],["3","區","OT／DMZ／IT"]],"lead":1.3,"aid":"c03","voice":40.56,"D":44.26,"subs":[[1.35,3.69,"網路切成三區"],[3.69,6.94,"OT 區的控制網路是 Vnet/IP"],[6.94,10.54,"雙重化，FCS、安全系統和操作站都在上面"],[10.54,11.73,"斷一條線照跑"],[11.73,15.5,"光華整機、廠務盤和攝影機另走 OT 交換器"],[15.5,17.73,"全廠三十八台管理型交換器"],[17.73,20.19,"OT 和 DMZ 中間是工業防火牆"],[20.19,22.93,"DMZ 放 Exaquantum 鏡像"],[22.93,24.16,"MES 和跳板機"],[24.16,27.58,"再經資料二極體到 IT 區的 ERP 和戰情中心"],[27.58,28.81,"台北總部只能唯讀"],[28.81,34.0,"遠端維運走跳板機，雙因子、限時、全程錄影"],[34.0,38.02,"資安照 IEC 62443-3-3 做基線"],[38.02,41.85,"開工兩個月內評估一次，SAT 前再評一次"]],"text":"網路切成三區。OT 區的控制網路是 Vnet/IP，雙重化，FCS、安全系統和操作站都在上面，斷一條線照跑；光華整機、廠務盤和攝影機另走 OT 交換器，全廠三十八台管理型交換器。OT 和 DMZ 中間是工業防火牆，DMZ 放 Exaquantum 鏡像、MES 和跳板機；再經資料二極體到 IT 區的 ERP 和戰情中心，台北總部只能唯讀。遠端維運走跳板機，雙因子、限時、全程錄影。資安照 IEC 62443-3-3 做基線，開工兩個月內評估一次，SAT 前再評一次。","cam":{"c":[-17.0,2,-2.0],"R":240,"el":34,"T":160,"az0":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[],"sig":{"paths":[],"marks":[],"panels":[]},"legend":[],"page":"<div class=\"pg pg-net \" data-links='[[&quot;nSW-1&quot;, &quot;nCORE&quot;, &quot;#8a63ff&quot;, 0.6, 2], [&quot;nSW-2&quot;, &quot;nCORE&quot;, &quot;#8a63ff&quot;, 0.6, 2], [&quot;nSW-3&quot;, &quot;nCORE&quot;, &quot;#8a63ff&quot;, 0.6, 2], [&quot;nSW-4&quot;, &quot;nCORE&quot;, &quot;#8a63ff&quot;, 0.6, 2], [&quot;nFLD&quot;, &quot;nSW-2&quot;, &quot;#13897d&quot;, 0.5, 2], [&quot;nCORE&quot;, &quot;nFW1&quot;, &quot;#0f6fd6&quot;, 0.7, 3], [&quot;nFW1&quot;, &quot;nHIS&quot;, &quot;#0f6fd6&quot;, 0.7, 2], [&quot;nHIS&quot;, &quot;nFW2&quot;, &quot;#2563c9&quot;, 0.6, 2], [&quot;nFW2&quot;, &quot;nWR&quot;, &quot;#6a3fb5&quot;, 0.6, 2], [&quot;nMES&quot;, &quot;nERP&quot;, &quot;#6a3fb5&quot;, 0.5, 2]]'><svg class=\"pl\"><\/svg><div class='net'><div class='zone it' data-a=\"25.39\"><i>IT 區<\/i><div class='nd' id='nERP'><b>ERP<\/b><span>工單・成本<\/span><\/div><div class='nd' id='nWR'><b>戰情中心<\/b><span>11 大功能<\/span><\/div><div class='nd' id='nHQ'><b>台北總部<\/b><span>VPN 唯讀<\/span><\/div><\/div><div class='fw' id='nFW2' data-a=\"19.37\">資料二極體　OT → IT 單向<\/div><div class='zone dmz' data-a=\"18.41\"><i>DMZ<\/i><div class='nd' id='nHIS'><b>Exaquantum 鏡像<\/b><span>1 s 全點<\/span><\/div><div class='nd' id='nMES'><b>MES／LIMS<\/b><span>AVEVA MES（規劃中）<\/span><\/div><div class='nd jump' id='nJMP' data-a=\"28.81\"><b>跳板機<\/b><span>雙因子・限時・錄影<\/span><\/div><\/div><div class='fw' id='nFW1' data-a=\"19.37\">工業防火牆<\/div><div class='zone ot' data-a=\"3.69\"><i>OT 區<\/i><div class='nd core' id='nCORE'><b>Vnet/IP 控制網路<\/b><span>雙重化・FCS ×3・ProSafe-RS・HIS・Exaquantum<\/span><\/div><div class='ring'><div class='nd sw' id='nSW-1' data-a=\"12.03\"><b>SW-1 北側<\/b><span>原料罐・化鐵・洗滌塔<\/span><\/div><div class='nd sw' id='nSW-2' data-a=\"12.33\"><b>SW-2 中央<\/b><span>儲罐・合成・板框・閃蒸<\/span><\/div><div class='nd sw' id='nSW-3' data-a=\"12.63\"><b>SW-3 西側<\/b><span>窯・粉碎・除磁・包裝・空壓<\/span><\/div><div class='nd sw' id='nSW-4' data-a=\"12.93\"><b>SW-4 廠務<\/b><span>純水・鍋爐・冷卻塔・電表<\/span><\/div><div class='nd sw' id='nSW-5' data-a=\"13.23\"><b>SW-5 IT<\/b><span>戰情中心・MES・辦公<\/span><\/div><\/div><div class='nd fld' id='nFLD' data-a=\"13.53\"><b>N-IO 遠端 I/O 10 節點・光華整機 PLC・廠務盤・協雅（Modbus TCP）・IP CAM<\/b><span>全廠 38 台管理型交換器・斷一條線照跑<\/span><\/div><\/div><div class='note' data-a=\"34.73\">IEC 62443-3-3 基線：開工 2 個月內完成第一次評估，SAT 前再評一次<\/div><\/div><\/div>"},{"id":"c04","no":"04","short":"點位總表","title":"全廠點位總表","sub":"26 站／453 監控點／225 警報","desc":"監控點依訊號類型分：類比 AI／AO、數位 DI／DO、子系統通訊（Modbus TCP）。光華整機與廠務盤走通訊，自家新購設備走硬線。","kind":"page","color":"#0f4c81","keys":[["453","點","戰情監控點"],["1,621","點","硬體 I/O（未含備用）"],["220","點","SIS 安全 I/O"],["26","處","第三方通訊介面"]],"lead":1.3,"aid":"c04","voice":35.952,"D":39.65,"subs":[[1.35,4.31,"這是全廠點位總表：二十六個站"],[4.31,8.06,"四百五十三個監控點、兩百二十五條警報"],[8.06,12.32,"類比輸入最多，是溫度、壓力、液位和分析儀"],[12.32,14.96,"類比輸出是蒸汽閥和調節閥"],[14.96,18.41,"數位點是泵、風機的運轉狀態和連鎖"],[18.41,21.75,"光華的窯、閃蒸、粉碎、除鐵、包裝這些整機"],[21.75,24.14,"連同廠務控制盤和協雅廢水系統"],[24.14,29.23,"都用 Modbus TCP 子系統通訊接進 CENTUM VP"],[29.23,32.21,"硬體 I/O 一千六百二十一點"],[32.21,35.01,"加兩成備用採購一千九百五十點"],[35.01,37.25,"安全系統另有兩百二十點"]],"text":"這是全廠點位總表：二十六個站、四百五十三個監控點、兩百二十五條警報。類比輸入最多，是溫度、壓力、液位和分析儀；類比輸出是蒸汽閥和調節閥；數位點是泵、風機的運轉狀態和連鎖。光華的窯、閃蒸、粉碎、除鐵、包裝這些整機，連同廠務控制盤和協雅廢水系統，都用 Modbus TCP 子系統通訊接進 CENTUM VP。硬體 I/O 一千六百二十一點，加兩成備用採購一千九百五十點，安全系統另有兩百二十點。","cam":{"c":[-17.0,2,-2.0],"R":240,"el":34,"T":160,"az0":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[],"sig":{"paths":[],"marks":[],"panels":[]},"legend":[],"page":"<div class=\"pg pg-io \" data-links='[]'><svg class=\"pl\"><\/svg><div class='two io2'><div class='col'><table class='tb io'><thead><tr><th>分區／節點<\/th><th>站<\/th><th>點<\/th><th>AI<\/th><th>AO<\/th><th>DI<\/th><th>DO<\/th><th>通訊<\/th><th>警報<\/th><\/tr><\/thead><tbody><tr data-a=\"0.80\"><th>1 原料罐區<\/th><td>1<\/td><td class='bold'>16<\/td><td>8<\/td><td><i>–<\/i><\/td><td>8<\/td><td><i>–<\/i><\/td><td class='com'><i>–<\/i><\/td><td>8<\/td><\/tr><tr data-a=\"1.08\"><th>2 化鐵線<\/th><td>4<\/td><td class='bold'>85<\/td><td>49<\/td><td>8<\/td><td>24<\/td><td>4<\/td><td class='com'><i>–<\/i><\/td><td>40<\/td><\/tr><tr data-a=\"1.36\"><th>3 儲罐區<\/th><td>1<\/td><td class='bold'>23<\/td><td>15<\/td><td><i>–<\/i><\/td><td>8<\/td><td><i>–<\/i><\/td><td class='com'><i>–<\/i><\/td><td>10<\/td><\/tr><tr data-a=\"1.64\"><th>4 合成區<\/th><td>2<\/td><td class='bold'>54<\/td><td>44<\/td><td>10<\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td class='com'><i>–<\/i><\/td><td>24<\/td><\/tr><tr data-a=\"1.92\"><th>5 板框區<\/th><td>2<\/td><td class='bold'>36<\/td><td>19<\/td><td><i>–<\/i><\/td><td>13<\/td><td>4<\/td><td class='com'><i>–<\/i><\/td><td>12<\/td><\/tr><tr data-a=\"2.20\"><th>6 閃蒸區<\/th><td>1<\/td><td class='bold'>30<\/td><td>5<\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td class='com'>Modbus 25<\/td><td>16<\/td><\/tr><tr data-a=\"2.48\"><th>7 窯爐區<\/th><td>2<\/td><td class='bold'>52<\/td><td>2<\/td><td><i>–<\/i><\/td><td>2<\/td><td><i>–<\/i><\/td><td class='com'>Modbus 48<\/td><td>30<\/td><\/tr><tr data-a=\"2.76\"><th>8 粉碎區<\/th><td>1<\/td><td class='bold'>14<\/td><td>3<\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td class='com'>Modbus 11<\/td><td>8<\/td><\/tr><tr data-a=\"3.04\"><th>9 除磁·混料<\/th><td>2<\/td><td class='bold'>16<\/td><td>1<\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td class='com'>Modbus 15<\/td><td>8<\/td><\/tr><tr data-a=\"3.32\"><th>10 包裝區<\/th><td>1<\/td><td class='bold'>6<\/td><td>2<\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td class='com'>Modbus 4<\/td><td>4<\/td><\/tr><tr data-a=\"3.60\"><th>U1 空壓／純水<\/th><td>2<\/td><td class='bold'>22<\/td><td>5<\/td><td><i>–<\/i><\/td><td>3<\/td><td><i>–<\/i><\/td><td class='com'>Modbus 14<\/td><td>8<\/td><\/tr><tr data-a=\"3.88\"><th>U2 鍋爐／天然氣<\/th><td>1<\/td><td class='bold'>20<\/td><td>8<\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td><i>–<\/i><\/td><td class='com'>Modbus 12<\/td><td>12<\/td><\/tr><tr data-a=\"4.16\"><th>U3 冷卻水／冰水<\/th><td>1<\/td><td class='bold'>20<\/td><td>9<\/td><td><i>–<\/i><\/td><td>9<\/td><td><i>–<\/i><\/td><td class='com'>Modbus 2<\/td><td>10<\/td><\/tr><tr data-a=\"4.44\"><th>U4 廢氣／氮氣<\/th><td>1<\/td><td class='bold'>14<\/td><td>7<\/td><td><i>–<\/i><\/td><td>7<\/td><td><i>–<\/i><\/td><td class='com'><i>–<\/i><\/td><td>12<\/td><\/tr><tr data-a=\"4.72\"><th>U5 廢水結晶（協雅）<\/th><td>2<\/td><td class='bold'>25<\/td><td>5<\/td><td><i>–<\/i><\/td><td>3<\/td><td><i>–<\/i><\/td><td class='com'>Modbus 17<\/td><td>13<\/td><\/tr><tr data-a=\"5.00\"><th>E 電力／緊急電源<\/th><td>2<\/td><td class='bold'>20<\/td><td>4<\/td><td><i>–<\/i><\/td><td>4<\/td><td><i>–<\/i><\/td><td class='com'>Modbus 12<\/td><td>10<\/td><\/tr><tr class='tot' data-a=\"5.28\"><th>合計<\/th><td>26<\/td><td class='bold'>453<\/td><td>186<\/td><td>18<\/td><td>81<\/td><td>8<\/td><td class='com'>160<\/td><td>225<\/td><\/tr><\/tbody><\/table><\/div><div class='col side'><div class='kpi' data-a=\"8.06\"><div class='stk'><span style='flex:186;background:#2f8fff'>AI<br>186<\/span><span style='flex:18;background:#ff9f1a'>AO<br>18<\/span><span style='flex:89;background:#1fb36b'>DI+DO<br>89<\/span><span style='flex:160;background:#12b5b0'>通訊<br>160<\/span><\/div><small>監控點依訊號類型（其中 SIS 27 點）<\/small><\/div><div class='kpi' data-a=\"30.53\"><b>1,621<\/b><span>硬體 I/O → 加 20% 備用採購 <b>1,950<\/b><\/span><\/div><div class='kpi' data-a=\"36.13\"><b>220<\/b><span>SIS 安全 I/O（F-DI／F-DO／F-AI）<\/span><\/div><div class='kpi' data-a=\"24.61\"><b>26<\/b><span>第三方通訊介面（Modbus TCP 子系統通訊）<\/span><\/div><\/div><\/div><\/div>"},{"id":"c05","no":"05","short":"原料罐","title":"原料罐區","sub":"RIO-01｜北牆外 磷酸・雙氧水儲槽","desc":"磷酸、雙氧水 80 m³ 各 2 座，卸料泵與進料泵。","kind":"3d","color":"#d9622b","io":{"AI":8,"AO":0,"DI":8,"DO":0,"PN":0,"MB":0,"OPC":0,"COM":0,"SIS":0},"io_items":[["雷達液位 LIT-0101～0104",4,"AI"],["泵 P-101～P-104 電流",4,"AI"],["泵 P-101～P-104 運轉",4,"DI"],["雙氧水槽溫高 TSH-0101／0102",2,"DI"],["防液堤洩漏",2,"DI"]],"design":["雷達連續量＋音叉高高液位獨立進 ProSafe-RS，停卸料泵","雙氧水槽溫高自動噴淋","泵運轉、電流硬線進 CENTUM VP"],"keys":[["16","點","監控點"],["8","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c05","voice":24.24,"D":27.94,"subs":[[1.35,3.94,"第一站是北牆外的原料罐區"],[3.94,7.33,"磷酸和雙氧水各兩座八十立方米儲槽"],[7.33,8.55,"每座槽兩套液位"],[8.55,11.16,"雷達連續量給 CENTUM VP"],[11.16,14.39,"音叉高高液位獨立進 ProSafe-RS"],[14.39,17.16,"到高位直接停卸料泵，不經過一般控制"],[17.16,18.54,"槽車卸料不會溢槽"],[18.54,21.73,"雙氧水槽溫一高就自動噴淋"],[21.73,25.53,"十六個監控點：類比八、數位八"]],"text":"第一站是北牆外的原料罐區，磷酸和雙氧水各兩座八十立方米儲槽。每座槽兩套液位：雷達連續量給 CENTUM VP，音叉高高液位獨立進 ProSafe-RS，到高位直接停卸料泵，不經過一般控制，槽車卸料不會溢槽。雙氧水槽溫一高就自動噴淋。十六個監控點：類比八、數位八。","cam":{"c":[-26.0,4,-59.25],"R":48,"el":36,"T":34},"ghost":true,"ghostRect":[-52.0,-69.0,0.0,-49.5],"ghostSkip":[],"foot":{"r":[-46.0,-6.0,-63.0,-55.5],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-14.8,2.2,-39.0],"t":"SIS-01 安全 I/O 櫃","s":"ProSafe-RS・SIL 2","box":[0.5,0.4,1.8],"color":"#c62828","panel":true},{"p":[-24.0,2.2,-60.78],"t":"RIO-01 遠端 I/O 節點","s":"原料罐區・IP55・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-9.35,9.3,-57.78],"t":"LIT-0101 雷達液位","s":"T-101A 磷酸槽","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-14.84,9.3,-57.78],"t":"LSHH 音叉高高液位","s":"ProSafe-RS 停卸料泵","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"},{"p":[-27.68,10.3,-57.78],"t":"TSH-0101 槽溫高","s":"雙氧水 → 噴淋","box":[0.4,0.4,0.8],"color":"#1fb36b","inst":"DI"},{"p":[-33.18,10.3,-57.78],"t":"LIT-0103 雷達液位","s":"T-102A 雙氧水槽","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[-9.35,9.3,-57.78],[-9.35,10.100000000000001,-57.78],[-24.0,10.100000000000001,-60.78],[-24.0,2.2,-60.78]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-14.84,9.3,-57.78],[-14.84,10.100000000000001,-57.78],[-14.8,10.100000000000001,-39.0],[-14.8,2.2,-39.0]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[-27.68,10.3,-57.78],[-27.68,11.100000000000001,-57.78],[-24.0,11.100000000000001,-60.78],[-24.0,2.2,-60.78]],"c":"#1fb36b","n":3,"v":4.0,"win":null},{"pts":[[-33.18,10.3,-57.78],[-33.18,11.100000000000001,-57.78],[-24.0,11.100000000000001,-60.78],[-24.0,2.2,-60.78]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-24.0,2.2,-60.78],[-24.0,11.0,-60.78],[6.0,11.0,-60.78],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true},{"pts":[[-14.8,2.2,-39.0],[-14.8,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-9.35,9.3,-57.78],"c":"#2f8fff","win":null},{"p":[-14.84,9.3,-57.78],"c":"#e5383b","win":null},{"p":[-27.68,10.3,-57.78],"c":"#1fb36b","win":null},{"p":[-33.18,10.3,-57.78],"c":"#2f8fff","win":null}],"panels":["RIO-01","SIS-01"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#e5383b","安全系統 ProSafe-RS"],["dot","#1fb36b","數位輸入 DI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#c62828","SIS（ProSafe-RS）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c06","no":"06","short":"化鐵","title":"化鐵線","sub":"RIO-02＋SIS-01｜北帶化鐵車間 +4.5 m","desc":"化鐵釜 60 m³ ×8（另留 2 釜位）、石墨換熱器 ×16、引風機 ×8、循環泵 ×16、鐵液板框、緩存罐。","kind":"3d","color":"#d9622b","io":{"AI":49,"AO":8,"DI":24,"DO":4,"PN":0,"MB":0,"OPC":0,"COM":0,"SIS":25},"io_items":[["釜溫 TIT-0201 ×8",8,"AI"],["釜壓 PIT-0201 ×8",8,"AI"],["釜液位 LIT-0207 ×8",8,"AI"],["引風機變頻 轉速 ×8",8,"AI"],["氫氣偵測 AIT-H2（SIS）",17,"AI","SIS"],["蒸汽調節閥 ×8",8,"AO"],["循環泵 ×16 運轉",16,"DI"],["鐵液板框狀態",4,"DI"],["洗滌塔風機回授（SIS）",4,"DI","SIS"],["加大排風・停蒸汽・關進料（SIS）",4,"DO","SIS"]],"design":["氫氣 17 點進 ProSafe-RS（SIL 2），10%／25% LEL 兩段","25% LEL 連鎖：停蒸汽、關進料、全速排風；釜高溫高壓另由 SIS 跳脫","釜溫串蒸汽閥 85±5 °C；釜壓微負壓"],"keys":[["85","點","監控點"],["40","條","警報規則"],["4","站","I/O 站"]],"lead":1.3,"aid":"c06","voice":32.112,"D":35.81,"subs":[[1.35,6.14,"化鐵車間風險最高，八台化鐵釜溶鐵會放出氫氣"],[6.14,9.92,"所以氫氣安全交給獨立的 ProSafe-RS"],[9.92,11.07,"十七個偵測點"],[11.07,14.03,"到爆炸下限百分之十先警報、加大排風"],[14.03,17.81,"到百分之二十五就連鎖停蒸汽、關進料、全速排風"],[17.81,20.77,"釜的高溫和高壓也由安全系統直接跳脫"],[20.77,22.58,"不靠一般控制、不等人"],[22.57,23.58,"正常操作時"],[23.58,27.93,"CENTUM VP 用釜溫串蒸汽閥維持八十五度上下"],[27.93,29.27,"釜壓保持微負壓"],[29.28,33.4,"四個站、八十五個監控點，全廠最多"]],"text":"化鐵車間風險最高，八台化鐵釜溶鐵會放出氫氣。所以氫氣安全交給獨立的 ProSafe-RS：十七個偵測點，到爆炸下限百分之十先警報、加大排風，到百分之二十五就連鎖停蒸汽、關進料、全速排風；釜的高溫和高壓也由安全系統直接跳脫，不靠一般控制、不等人。正常操作時，CENTUM VP 用釜溫串蒸汽閥維持八十五度上下，釜壓保持微負壓。四個站、八十五個監控點，全廠最多。","cam":{"c":[-15.0,4,-46.5],"R":64,"el":40,"T":44},"ghost":true,"ghostRect":[-51.0,-62.0,21.0,-31.0],"ghostSkip":[],"foot":{"r":[-45.0,15.0,-56.0,-37.0],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-14.8,2.2,-39.0],"t":"SIS-01 安全 I/O 櫃","s":"ProSafe-RS・SIL 2","box":[0.5,0.4,1.8],"color":"#c62828","panel":true},{"p":[-17.5,2.2,-39.0],"t":"RIO-02 遠端 I/O 節點","s":"化鐵線・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-40.16,6.3,-44.33],"t":"TIT-0201 釜溫","s":"R-201A → 蒸汽 TIC","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-35.17,6.3,-44.33],"t":"PIT-0201 釜壓","s":"微負壓・超壓停加熱","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-30.08,6.4,-44.33],"t":"AIT-H2-01 氫氣","s":"%LEL → SIS","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"},{"p":[-36.27,6.5,-46.93],"t":"TV 蒸汽調節閥","s":"石墨換熱器","box":[0.4,0.4,0.8],"color":"#ff9f1a","inst":"AO"},{"p":[-4.0,5.85,-53.46],"t":"AIT-H2-09 總管氫氣","s":"25% 連鎖","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"}],"sig":{"paths":[{"pts":[[-40.16,6.3,-44.33],[-40.16,7.1,-44.33],[-17.5,7.1,-39.0],[-17.5,2.2,-39.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-35.17,6.3,-44.33],[-35.17,7.1,-44.33],[-17.5,7.1,-39.0],[-17.5,2.2,-39.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-30.08,6.4,-44.33],[-30.08,7.2,-44.33],[-14.8,7.2,-39.0],[-14.8,2.2,-39.0]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[-36.27,6.5,-46.93],[-36.27,7.3,-46.93],[-17.5,7.3,-39.0],[-17.5,2.2,-39.0]],"c":"#ff9f1a","n":3,"v":4.0,"win":null},{"pts":[[-4.0,5.85,-53.46],[-4.0,6.6499999999999995,-53.46],[-14.8,6.6499999999999995,-39.0],[-14.8,2.2,-39.0]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[-17.5,2.2,-39.0],[-17.5,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true},{"pts":[[-14.8,2.2,-39.0],[-14.8,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-40.16,6.3,-44.33],"c":"#2f8fff","win":null},{"p":[-35.17,6.3,-44.33],"c":"#2f8fff","win":null},{"p":[-30.08,6.4,-44.33],"c":"#e5383b","win":null},{"p":[-36.27,6.5,-46.93],"c":"#ff9f1a","win":null},{"p":[-4.0,5.85,-53.46],"c":"#e5383b","win":null}],"panels":["RIO-02","SIS-01"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#e5383b","安全系統 ProSafe-RS"],["dot","#ff9f1a","類比輸出 AO"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#c62828","SIS（ProSafe-RS）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c07","no":"07","short":"儲罐","title":"儲罐區","sub":"RIO-03｜鐵液・母液・洗水・純水","desc":"鐵液、母液、洗水 80 m³ ×12，純水 80 m³ ×1，泵 8 台。","kind":"3d","color":"#d9622b","io":{"AI":15,"AO":0,"DI":8,"DO":0,"PN":0,"MB":0,"OPC":0,"COM":0,"SIS":0},"io_items":[["雷達液位 ×13",13,"AI"],["溫度",2,"AI"],["泵 ×8 運轉",8,"DI"]],"design":["13 座槽全部雷達液位","低液位停泵防空轉、高液位停進料；高高液位進 SIS","四段洗水罐液位連到板框批次排程"],"keys":[["23","點","監控點"],["10","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c07","voice":25.728,"D":29.43,"subs":[[1.35,6.1,"儲罐區十二座八十立方米的鐵液、母液和洗水罐"],[6.1,7.61,"加一座純水槽"],[7.61,11.57,"重點是庫存和防溢：十三座槽全部雷達液位"],[11.57,14.15,"低液位停泵、高液位停進料"],[14.15,16.33,"高高液位另進安全系統"],[16.33,20.33,"四段洗水罐液位決定板框逆流洗滌接不接得上"],[20.33,23.0,"所以直接連到板框的批次排程"],[23.0,27.03,"二十三個監控點：類比十五、數位八"]],"text":"儲罐區十二座八十立方米的鐵液、母液和洗水罐，加一座純水槽。重點是庫存和防溢：十三座槽全部雷達液位，低液位停泵、高液位停進料，高高液位另進安全系統。四段洗水罐液位決定板框逆流洗滌接不接得上，所以直接連到板框的批次排程。二十三個監控點：類比十五、數位八。","cam":{"c":[-49.5,4,-12.0],"R":44,"el":42,"T":34},"ghost":true,"ghostRect":[-69.0,-28.0,-30.0,4.0],"ghostSkip":[],"foot":{"r":[-63.0,-36.0,-22.0,-2.0],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-48.0,2.2,-10.0],"t":"RIO-03 遠端 I/O 節點","s":"儲罐區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-54.03,8.3,-13.3],"t":"LIT-0425 母液液位","s":"雷達","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-45.04,8.3,-17.29],"t":"LIT-0210 鐵液液位","s":"雷達","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-40.54,8.3,-6.3],"t":"LIT-0429 一洗液位","s":"連板框排程","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-58.52,8.3,-6.3],"t":"LIT-0106 純水液位","s":"T-105 進水控制","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[-54.03,8.3,-13.3],[-54.03,9.100000000000001,-13.3],[-48.0,9.100000000000001,-10.0],[-48.0,2.2,-10.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-45.04,8.3,-17.29],[-45.04,9.100000000000001,-17.29],[-48.0,9.100000000000001,-10.0],[-48.0,2.2,-10.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-40.54,8.3,-6.3],[-40.54,9.100000000000001,-6.3],[-48.0,9.100000000000001,-10.0],[-48.0,2.2,-10.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-58.52,8.3,-6.3],[-58.52,9.100000000000001,-6.3],[-48.0,9.100000000000001,-10.0],[-48.0,2.2,-10.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-48.0,2.2,-10.0],[-48.0,11.0,-10.0],[6.0,11.0,-10.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-54.03,8.3,-13.3],"c":"#2f8fff","win":null},{"p":[-45.04,8.3,-17.29],"c":"#2f8fff","win":null},{"p":[-40.54,8.3,-6.3],"c":"#2f8fff","win":null},{"p":[-58.52,8.3,-6.3],"c":"#2f8fff","win":null}],"panels":["RIO-03"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c08","no":"08","short":"合成","title":"合成區","sub":"RIO-04｜+4.0 m 操作平台","desc":"氧化釜 ×4、陳化釜 ×6、混合釜 ×2；雙氧水與助劑高位罐。","kind":"3d","color":"#d9622b","io":{"AI":44,"AO":10,"DI":0,"DO":0,"PN":0,"MB":0,"OPC":0,"COM":0,"SIS":0},"io_items":[["釜溫 ×12",12,"AI"],["釜液位 ×12",12,"AI"],["pH／ORP（FLXA21）",4,"AI"],["加料流量（雙氧水 ROTAMASS）",4,"AI"],["攪拌變頻 轉速 ×12",12,"AI"],["蒸汽調節閥 ×10",10,"AO"]],"design":["CENTUM VP Batch：ISA-88 配方、步驟、單元","雙氧水 ROTAMASS 計量，30～80 min 加完，ORP >800 mV 停加","氧化釜高溫由 ProSafe-RS 停雙氧水；陳化保溫 88 °C"],"keys":[["54","點","監控點"],["24","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c08","voice":30.744,"D":34.44,"subs":[[1.35,3.39,"合成區是批次核心"],[3.39,7.47,"四台氧化釜、六台陳化釜、兩台混合釜"],[7.47,12.34,"配方和步驟用 CENTUM VP Batch 照 ISA-88 執行"],[12.34,13.59,"每批參數自動記錄"],[13.59,17.09,"雙氧水用 ROTAMASS 科氏流量計計量"],[17.09,18.84,"三十到八十分鐘內加完"],[18.84,22.19,"ORP 超過八百毫伏自動停加；氧化會放熱"],[22.19,24.74,"釜溫過高由安全系統直接停雙氧水"],[24.74,27.36,"陳化保溫八十八度"],[27.36,32.04,"五十四個監控點：類比輸入四十四、輸出十"]],"text":"合成區是批次核心：四台氧化釜、六台陳化釜、兩台混合釜。配方和步驟用 CENTUM VP Batch 照 ISA-88 執行，每批參數自動記錄。雙氧水用 ROTAMASS 科氏流量計計量，三十到八十分鐘內加完，ORP 超過八百毫伏自動停加；氧化會放熱，釜溫過高由安全系統直接停雙氧水。陳化保溫八十八度。五十四個監控點：類比輸入四十四、輸出十。","cam":{"c":[-21.0,5,-16.5],"R":42,"el":42,"T":40},"ghost":true,"ghostRect":[-43.0,-32.0,1.0,-1.0],"ghostSkip":[],"foot":{"r":[-37.0,-5.0,-26.0,-7.0],"y":4.0,"color":"#d9622b"},"callouts":[{"p":[-17.0,2.2,-23.3],"t":"RIO-04 遠端 I/O 節點","s":"合成區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-32.14,7.8,-21.11],"t":"FQIT-0309 雙氧水","s":"ROTAMASS 科氏","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-31.89,5.4,-16.38],"t":"AIT pH／ORP","s":"FLXA21・R-301A","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-27.89,5.4,-11.39],"t":"SIC-0301 攪拌","s":"變頻轉速","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-19.13,6.4,-16.59],"t":"TIC-0302 溫控","s":"陳化 88 °C","box":[0.4,0.4,0.8],"color":"#ff9f1a","inst":"AO"}],"sig":{"paths":[{"pts":[[-32.14,7.8,-21.11],[-32.14,8.6,-21.11],[-17.0,8.6,-23.3],[-17.0,2.2,-23.3]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-31.89,5.4,-16.38],[-31.89,6.2,-16.38],[-17.0,6.2,-23.3],[-17.0,2.2,-23.3]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-27.89,5.4,-11.39],[-27.89,6.2,-11.39],[-17.0,6.2,-23.3],[-17.0,2.2,-23.3]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-19.13,6.4,-16.59],[-19.13,7.2,-16.59],[-17.0,7.2,-23.3],[-17.0,2.2,-23.3]],"c":"#ff9f1a","n":3,"v":4.0,"win":null},{"pts":[[-17.0,2.2,-23.3],[-17.0,11.0,-23.3],[6.0,11.0,-23.3],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-32.14,7.8,-21.11],"c":"#2f8fff","win":null},{"p":[-31.89,5.4,-16.38],"c":"#2f8fff","win":null},{"p":[-27.89,5.4,-11.39],"c":"#2f8fff","win":null},{"p":[-19.13,6.4,-16.59],"c":"#ff9f1a","win":null}],"panels":["RIO-04"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#ff9f1a","類比輸出 AO"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c09","no":"09","short":"板框","title":"板框區","sub":"RIO-05｜+3.5 m 板框平台","desc":"420 m² 板框 ×4、壓榨泵 ×5、緩存罐 7 座。","kind":"3d","color":"#d9622b","io":{"AI":19,"AO":0,"DI":13,"DO":4,"PN":0,"MB":0,"OPC":0,"COM":0,"SIS":0},"io_items":[["進料壓力 PIT-0404 ×4",4,"AI"],["壓榨壓力 PIT-0405 ×4",4,"AI"],["緩存罐液位 ×7",7,"AI"],["末洗水電導率 ×4",4,"AI"],["板框運行・完成 ×4",8,"DI"],["壓榨泵 ×5 運轉",5,"DI"],["板框啟動 ×4",4,"DO"]],"design":["光華電控櫃留動力段，順序由 CENTUM VP Batch 執行","進料 0.6→0.8 MPa 逐步升壓；壓榨 0.8～1.2 MPa 保壓","洗滌終點看電導率 <50 µS/cm，不看時間"],"keys":[["36","點","監控點"],["12","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c09","voice":26.016,"D":29.72,"subs":[[1.35,5.01,"板框區四台四百二十平方米壓濾機"],[5.01,7.74,"光華電控櫃只留動力段，進料、壓榨"],[7.74,11.76,"四段洗滌由 CENTUM VP Batch 執行"],[11.76,15.41,"進料壓力從 0.6 逐步升到 0.8 MPa"],[15.41,17.78,"壓榨保壓 0.8 到 1.2"],[17.78,19.69,"洗滌終點看末洗水電導率"],[19.69,23.01,"低於五十微西門子才算洗乾淨，每批濾餅一致"],[23.01,27.31,"三十六個監控點：類比十九、數位十七"]],"text":"板框區四台四百二十平方米壓濾機。光華電控櫃只留動力段，進料、壓榨、四段洗滌由 CENTUM VP Batch 執行。進料壓力從 0.6 逐步升到 0.8 MPa，壓榨保壓 0.8 到 1.2；洗滌終點看末洗水電導率，低於五十微西門子才算洗乾淨，每批濾餅一致。三十六個監控點：類比十九、數位十七。","cam":{"c":[-16.0,4,2.25],"R":42,"el":42,"T":40},"ghost":true,"ghostRect":[-37.0,-12.5,5.0,17.0],"ghostSkip":[],"foot":{"r":[-31.0,-1.0,-6.5,11.0],"y":3.5,"color":"#d9622b"},"callouts":[{"p":[-16.8,2.2,17.65],"t":"RIO-05 遠端 I/O 節點","s":"板框區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-23.43,6.9,6.09],"t":"PIT-0405 壓榨壓力","s":"0.8～1.2 MPa","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-14.7,6.9,6.09],"t":"PIT-0404 進料壓力","s":"逐步升壓","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-8.62,2.8,-2.01],"t":"AIT-EC-01 電導率","s":"終點 <50 µS/cm","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-26.85,1.2,6.56],"t":"P-401A 壓榨泵","s":"運轉 DI","box":[0.4,0.4,0.8],"color":"#1fb36b","inst":"DI"}],"sig":{"paths":[{"pts":[[-23.43,6.9,6.09],[-23.43,7.7,6.09],[-16.8,7.7,17.65],[-16.8,2.2,17.65]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-14.7,6.9,6.09],[-14.7,7.7,6.09],[-16.8,7.7,17.65],[-16.8,2.2,17.65]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-8.62,2.8,-2.01],[-8.62,3.5999999999999996,-2.01],[-16.8,3.5999999999999996,17.65],[-16.8,2.2,17.65]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-26.85,1.2,6.56],[-26.85,3.0,6.56],[-16.8,3.0,17.65],[-16.8,2.2,17.65]],"c":"#1fb36b","n":3,"v":4.0,"win":null},{"pts":[[-16.8,2.2,17.65],[-16.8,11.0,17.65],[6.0,11.0,17.65],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-23.43,6.9,6.09],"c":"#2f8fff","win":null},{"p":[-14.7,6.9,6.09],"c":"#2f8fff","win":null},{"p":[-8.62,2.8,-2.01],"c":"#2f8fff","win":null},{"p":[-26.85,1.2,6.56],"c":"#1fb36b","win":null}],"panels":["RIO-05"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#1fb36b","數位輸入 DI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c10","no":"10","short":"閃蒸","title":"閃蒸區","sub":"RIO-06＋SIS-02｜閃蒸乾燥系統","desc":"XSG-18 閃蒸（蒸汽＋電熱補償）、加料器 ×10、旋風、布袋、引風機。","kind":"3d","color":"#d9622b","io":{"AI":5,"AO":0,"DI":0,"DO":0,"PN":0,"MB":25,"OPC":0,"COM":25,"SIS":2},"io_items":[["閃蒸 PLC：進出風溫、電熱、風機、加料器、布袋（子系統通訊）",25,"MB"],["蒸汽壓力・流量",2,"AI"],["出料水分 NIR",1,"AI"],["出口超溫（SIS）",2,"AI","SIS"]],"design":["整機 PLC 保留，25 點 Modbus TCP 進 CENTUM VP","CENTUM VP 下設定值、看趨勢；出料水分 NIR 在線","出口超溫獨立進 ProSafe-RS"],"keys":[["30","點","監控點"],["16","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c10","voice":27.624,"D":31.32,"subs":[[1.35,4.21,"閃蒸把濾餅乾燥成粉"],[4.21,6.18,"這台光華整機自帶 PLC"],[6.18,8.61,"溫度、電熱和加料迴路調得好好的"],[8.61,11.33,"我們不全部換掉：硬體和機台控制留著"],[11.33,16.94,"用 Modbus TCP 子系統通訊把二十五個點接進 CENTUM VP"],[16.94,19.06,"中控下設定值、看趨勢和警報"],[19.06,21.77,"出料水分我們自己裝近紅外線在線量"],[21.77,24.8,"出口超溫獨立進 ProSafe-RS"],[24.8,28.92,"三十個監控點：通訊二十五、類比五"]],"text":"閃蒸把濾餅乾燥成粉。這台光華整機自帶 PLC，溫度、電熱和加料迴路調得好好的，我們不全部換掉：硬體和機台控制留著，用 Modbus TCP 子系統通訊把二十五個點接進 CENTUM VP，中控下設定值、看趨勢和警報。出料水分我們自己裝近紅外線在線量，出口超溫獨立進 ProSafe-RS。三十個監控點：通訊二十五、類比五。","cam":{"c":[-37.0,5,5.75],"R":40,"el":40,"T":38},"ghost":true,"ghostRect":[-51.5,-10.5,-22.5,22.0],"ghostSkip":[],"foot":{"r":[-45.5,-28.5,-4.5,16.0],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-55.8,2.2,12.36],"t":"SIS-02 安全 I/O 櫃","s":"ProSafe-RS・窯／閃蒸超溫","box":[0.5,0.4,1.8],"color":"#c62828","panel":true},{"p":[-33.0,2.2,-1.9],"t":"RIO-06 遠端 I/O 節點","s":"閃蒸區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-33.6,3.3,10.68],"t":"閃蒸 PLC（保留）","s":"Modbus TCP 25 點","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-33.3,9.7,5.94],"t":"TIT-0507 出風溫度","s":"超溫 → SIS","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"},{"p":[-40.09,11.3,0.11],"t":"AIT-H2O-01 水分","s":"NIR 在線","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-40.0,2.5,12.1],"t":"EH-501 電熱","s":"由閃蒸 PLC 控","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-40.42,10.6,7.03],"t":"SIC-0504 進料螺旋","s":"閃蒸 PLC 迴路","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"}],"sig":{"paths":[{"pts":[[-33.6,3.3,10.68],[-33.6,4.1,10.68],[-33.0,4.1,-1.9],[-33.0,2.2,-1.9]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-33.3,9.7,5.94],[-33.3,10.5,5.94],[-55.8,10.5,12.36],[-55.8,2.2,12.36]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[-40.09,11.3,0.11],[-40.09,12.100000000000001,0.11],[-33.0,12.100000000000001,-1.9],[-33.0,2.2,-1.9]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-40.0,2.5,12.1],[-40.0,3.3,12.1],[-33.0,3.3,-1.9],[-33.0,2.2,-1.9]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-40.42,10.6,7.03],[-40.42,11.4,7.03],[-33.0,11.4,-1.9],[-33.0,2.2,-1.9]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-33.0,2.2,-1.9],[-33.0,11.0,-1.9],[6.0,11.0,-1.9],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true},{"pts":[[-55.8,2.2,12.36],[-55.8,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-33.6,3.3,10.68],"c":"#8a63ff","win":null},{"p":[-33.3,9.7,5.94],"c":"#e5383b","win":null},{"p":[-40.09,11.3,0.11],"c":"#2f8fff","win":null},{"p":[-40.0,2.5,12.1],"c":"#8a63ff","win":null},{"p":[-40.42,10.6,7.03],"c":"#8a63ff","win":null}],"panels":["RIO-06","SIS-02"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#e5383b","安全系統 ProSafe-RS"],["dot","#2f8fff","類比輸入 AI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#c62828","SIS（ProSafe-RS）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c11","no":"11","short":"窯爐","title":"窯爐區","sub":"RIO-07＋SIS-02｜電熱回轉窯 ×2","desc":"回轉窯 ×2，每條電熱 1,100 kW、8 溫區；SCR 電熱盤保留；窯尾袋濾。","kind":"3d","color":"#d9622b","io":{"AI":2,"AO":0,"DI":2,"DO":0,"PN":0,"MB":48,"OPC":0,"COM":48,"SIS":0},"io_items":[["窯 PLC：8 區溫度、SCR、轉速、傳動、風機、袋濾（子系統通訊）×2",48,"MB"],["料倉料位 ×2",2,"AI"],["UPS 狀態 ×2",2,"DI"]],"design":["窯 PLC＋SCR 櫃保留，8 溫區 PID 留在機台","每窯 24 點 Modbus TCP 進 CENTUM VP：設定、趨勢、批號","超溫、斷絲由 ProSafe-RS 硬線跳脫；UPS 30 min"],"keys":[["52","點","監控點"],["30","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c11","voice":31.752,"D":35.45,"subs":[[1.35,6.19,"回轉窯兩條，每條一千一百千瓦電熱、八個溫區"],[6.19,9.8,"窯的溫度曲線要八區各自 PID 才做得到正負二度"],[9.8,13.12,"這套控制光華的窯 PLC 和可控硅櫃已經做好"],[13.12,14.42,"我們保留機台控制"],[14.42,19.33,"每條窯用 Modbus TCP 接二十四個點進 CENTUM VP"],[19.33,21.79,"中控看溫度曲線、下設定值、綁批號"],[21.79,22.97,"安全不能靠通訊"],[22.97,27.41,"所以超溫和電熱絲斷線另外硬線進 ProSafe-RS 跳脫"],[27.41,29.78,"控制電源有 UPS 撐三十分鐘"],[29.78,33.05,"五十二個監控點：通訊四十八"]],"text":"回轉窯兩條，每條一千一百千瓦電熱、八個溫區。窯的溫度曲線要八區各自 PID 才做得到正負二度，這套控制光華的窯 PLC 和可控硅櫃已經做好，我們保留機台控制，每條窯用 Modbus TCP 接二十四個點進 CENTUM VP，中控看溫度曲線、下設定值、綁批號。安全不能靠通訊，所以超溫和電熱絲斷線另外硬線進 ProSafe-RS 跳脫，控制電源有 UPS 撐三十分鐘。五十二個監控點：通訊四十八。","cam":{"c":[-58.25,3,4.0],"R":48,"el":46,"T":40},"ghost":true,"ghostRect":[-79.0,-12.0,-37.5,20.0],"ghostSkip":[],"foot":{"r":[-73.0,-43.5,-6.0,14.0],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-55.8,2.2,12.36],"t":"SIS-02 安全 I/O 櫃","s":"ProSafe-RS・窯／閃蒸超溫","box":[0.5,0.4,1.8],"color":"#c62828","panel":true},{"p":[-58.5,2.2,12.36],"t":"RIO-07 遠端 I/O 節點","s":"窯爐區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-72.0,3.9,-1.27],"t":"窯#1 PLC（保留）","s":"Modbus TCP 24 點","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-59.0,3.9,-1.27],"t":"TIC-0605 第 5 溫區","s":"窯 PLC 8 區 PID","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-51.0,3.9,9.51],"t":"TSHH 超溫・斷絲","s":"→ SIS 硬線","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"},{"p":[-77.5,2.4,12.45],"t":"MP-H1 SCR 電熱盤","s":"保留・窯 PLC 控","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-48.41,2.7,2.64],"t":"BF-601A 窯尾袋濾","s":"差壓・通訊","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"}],"sig":{"paths":[{"pts":[[-72.0,3.9,-1.27],[-72.0,4.7,-1.27],[-58.5,4.7,12.36],[-58.5,2.2,12.36]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-59.0,3.9,-1.27],[-59.0,4.7,-1.27],[-58.5,4.7,12.36],[-58.5,2.2,12.36]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-51.0,3.9,9.51],[-51.0,4.7,9.51],[-55.8,4.7,12.36],[-55.8,2.2,12.36]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[-77.5,2.4,12.45],[-77.5,3.2,12.45],[-58.5,3.2,12.36],[-58.5,2.2,12.36]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-48.41,2.7,2.64],[-48.41,3.5,2.64],[-58.5,3.5,12.36],[-58.5,2.2,12.36]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-58.5,2.2,12.36],[-58.5,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true},{"pts":[[-55.8,2.2,12.36],[-55.8,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-72.0,3.9,-1.27],"c":"#8a63ff","win":null},{"p":[-59.0,3.9,-1.27],"c":"#8a63ff","win":null},{"p":[-51.0,3.9,9.51],"c":"#e5383b","win":null},{"p":[-77.5,2.4,12.45],"c":"#8a63ff","win":null},{"p":[-48.41,2.7,2.64],"c":"#8a63ff","win":null}],"panels":["RIO-07","SIS-02"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#e5383b","安全系統 ProSafe-RS"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#c62828","SIS（ProSafe-RS）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c12","no":"12","short":"粉碎","title":"粉碎區","sub":"RIO-08｜機械磨＋分級機","desc":"機械磨 CSM1250-V（粉碎、分級、引風變頻）、脈衝布袋收集器 ×2、20 m³ 緩存倉。","kind":"3d","color":"#d9622b","io":{"AI":3,"AO":0,"DI":0,"DO":0,"PN":0,"MB":11,"OPC":0,"COM":11,"SIS":0},"io_items":[["磨機 PLC：粉碎・分級・引風・喂料・溫度・收塵（子系統通訊）",11,"MB"],["壓縮空氣壓力・露點",2,"AI"],["冷卻水溫",1,"AI"]],"design":["磨機 PLC 控制櫃保留，11 點 Modbus TCP 進 CENTUM VP","公用條件（壓空、露點、冷卻水）由我們自己量","粉碎電流長期趨勢進 Exaquantum 做預知保養"],"keys":[["14","點","監控點"],["8","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c12","voice":26.112,"D":29.81,"subs":[[1.35,3.09,"粉碎區是機械磨加分級機"],[3.09,6.0,"光華的 PLC 控制櫃保留，粉碎、分級"],[6.0,11.23,"引風和喂料的十一個點用 Modbus TCP 接進 CENTUM VP"],[11.23,15.74,"壓縮空氣壓力、露點和冷卻水溫這些公用條件"],[15.74,17.02,"我們自己量"],[17.02,20.89,"粉碎電流的長期趨勢存進 Exaquantum"],[20.89,23.41,"錘頭磨耗看得出來，做預知保養"],[23.41,27.4,"十四個監控點：通訊十一、類比三"]],"text":"粉碎區是機械磨加分級機，光華的 PLC 控制櫃保留，粉碎、分級、引風和喂料的十一個點用 Modbus TCP 接進 CENTUM VP。壓縮空氣壓力、露點和冷卻水溫這些公用條件，我們自己量。粉碎電流的長期趨勢存進 Exaquantum，錘頭磨耗看得出來，做預知保養。十四個監控點：通訊十一、類比三。","cam":{"c":[-70.25,4,-10.0],"R":38,"el":46,"T":32},"ghost":true,"ghostRect":[-86.5,-22.5,-54.0,2.5],"ghostSkip":[],"foot":{"r":[-80.5,-60.0,-16.5,-3.5],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-75.75,2.2,-12.5],"t":"RIO-08 遠端 I/O 節點","s":"粉碎區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-72.38,6.3,-7.73],"t":"M-701 磨機 PLC（保留）","s":"Modbus TCP 11 點","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-66.47,9.1,-9.35],"t":"PIC-0701 系統負壓","s":"磨機 PLC 迴路","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-63.79,1.8,-12.1],"t":"TIT-0710 循環氣溫","s":"通訊","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-77.27,9.6,-8.84],"t":"LIT-0736 料位","s":"磨後緩存倉","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[-72.38,6.3,-7.73],[-72.38,7.1,-7.73],[-75.75,7.1,-12.5],[-75.75,2.2,-12.5]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-66.47,9.1,-9.35],[-66.47,9.9,-9.35],[-75.75,9.9,-12.5],[-75.75,2.2,-12.5]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-63.79,1.8,-12.1],[-63.79,3.0,-12.1],[-75.75,3.0,-12.5],[-75.75,2.2,-12.5]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-77.27,9.6,-8.84],[-77.27,10.4,-8.84],[-75.75,10.4,-12.5],[-75.75,2.2,-12.5]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-75.75,2.2,-12.5],[-75.75,11.0,-12.5],[6.0,11.0,-12.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-72.38,6.3,-7.73],"c":"#8a63ff","win":null},{"p":[-66.47,9.1,-9.35],"c":"#8a63ff","win":null},{"p":[-63.79,1.8,-12.1],"c":"#8a63ff","win":null},{"p":[-77.27,9.6,-8.84],"c":"#2f8fff","win":null}],"panels":["RIO-08"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#2f8fff","類比輸入 AI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c13","no":"13","short":"除磁混料","title":"除磁・混料","sub":"RIO-09｜電磁除鐵器 ×3＋混料機","desc":"電磁除鐵器 ×3 串聯、混料機 MX-701；鋼構兩層。","kind":"3d","color":"#d9622b","io":{"AI":1,"AO":0,"DI":0,"DO":0,"PN":0,"MB":15,"OPC":0,"COM":15,"SIS":0},"io_items":[["除鐵器控制櫃 ×3＋混料機電控（子系統通訊）",15,"MB"],["混料稱重 WIT-0709",1,"AI"]],"design":["除鐵器勵磁、場強、冷卻水溫走 Modbus TCP","場強掉落即警報並擋料，磁性異物 ≤50 ppb","合批批號由 MES 自動綁定"],"keys":[["16","點","監控點"],["8","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c13","voice":25.704,"D":29.4,"subs":[[1.35,5.92,"除磁混料區是三台電磁除鐵器串聯加一台混料機"],[5.92,8.31,"除鐵器的控制櫃保留，勵磁電流"],[8.31,12.12,"場強和冷卻水溫用 Modbus TCP 接進來"],[12.12,15.46,"冷卻水要低於二十度；場強一掉就警報並擋料"],[15.46,18.48,"因為磁性異物要壓在五十 ppb 以下"],[18.48,20.42,"混料稱重我們自己量"],[20.42,22.94,"合批批號由 MES 綁定"],[22.94,26.99,"十六個監控點：通訊十五、類比一"]],"text":"除磁混料區是三台電磁除鐵器串聯加一台混料機。除鐵器的控制櫃保留，勵磁電流、場強和冷卻水溫用 Modbus TCP 接進來，冷卻水要低於二十度；場強一掉就警報並擋料，因為磁性異物要壓在五十 ppb 以下。混料稱重我們自己量，合批批號由 MES 綁定。十六個監控點：通訊十五、類比一。","cam":{"c":[-84.25,5,-8.75],"R":32,"el":38,"T":30},"ghost":true,"ghostRect":[-95.0,-19.0,-73.5,1.5],"ghostSkip":[],"foot":{"r":[-89.0,-79.5,-13.0,-4.5],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-87.99,2.2,-12.5],"t":"RIO-09 遠端 I/O 節點","s":"除磁・混料・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-84.47,7.3,-8.48],"t":"MG-701 除鐵器","s":"Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-85.35,10.8,-7.59],"t":"冷卻水溫","s":"<20 °C・通訊","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-83.58,3.3,-9.36],"t":"WIT-0709 混料稱重","s":"合批 8～12 m³","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[-84.47,7.3,-8.48],[-84.47,8.1,-8.48],[-87.99,8.1,-12.5],[-87.99,2.2,-12.5]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-85.35,10.8,-7.59],[-85.35,11.600000000000001,-7.59],[-87.99,11.600000000000001,-12.5],[-87.99,2.2,-12.5]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-83.58,3.3,-9.36],[-83.58,4.1,-9.36],[-87.99,4.1,-12.5],[-87.99,2.2,-12.5]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-87.99,2.2,-12.5],[-87.99,11.0,-12.5],[6.0,11.0,-12.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-84.47,7.3,-8.48],"c":"#8a63ff","win":null},{"p":[-85.35,10.8,-7.59],"c":"#8a63ff","win":null},{"p":[-83.58,3.3,-9.36],"c":"#2f8fff","win":null}],"panels":["RIO-09"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#2f8fff","類比輸入 AI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c14","no":"14","short":"包裝","title":"包裝區","sub":"RIO-10｜噸袋包裝＋追溯終點","desc":"噸袋包裝機 BZD1000、包裝料倉、集塵；成品倉 40 m³。","kind":"3d","color":"#d9622b","io":{"AI":2,"AO":0,"DI":0,"DO":0,"PN":0,"MB":4,"OPC":0,"COM":4,"SIS":0},"io_items":[["包裝機控制器：秤重・包數・運轉・故障（子系統通訊）",4,"MB"],["露點",1,"AI"],["集塵差壓",1,"AI"]],"design":["包裝機整機控制保留；中國製小型 PLC 換非中國產地控制器","秤重、包數 Modbus TCP 進 CENTUM VP；標籤綁批號","批次譜系在這裡收口"],"keys":[["6","點","監控點"],["4","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c14","voice":25.104,"D":28.8,"subs":[[1.35,4.15,"包裝區是追溯的終點"],[4.15,5.81,"噸袋包裝機保留整機控制"],[5.81,9.28,"原本中國製的小型 PLC 換成非中國產地的控制器"],[9.28,13.58,"秤重和包數用 Modbus TCP 接進 CENTUM VP"],[13.58,16.52,"每一袋自動秤重、噴碼、貼標"],[16.52,20.52,"標籤綁批號、掃碼入庫；從投料到這一袋"],[20.52,22.63,"批次譜系在這裡收口"],[22.62,26.39,"六個監控點：通訊四、類比二"]],"text":"包裝區是追溯的終點。噸袋包裝機保留整機控制，原本中國製的小型 PLC 換成非中國產地的控制器，秤重和包數用 Modbus TCP 接進 CENTUM VP。每一袋自動秤重、噴碼、貼標，標籤綁批號、掃碼入庫；從投料到這一袋，批次譜系在這裡收口。六個監控點：通訊四、類比二。","cam":{"c":[-87.75,4,-1.5],"R":34,"el":38,"T":30},"ghost":true,"ghostRect":[-102.0,-13.0,-73.5,10.0],"ghostSkip":[],"foot":{"r":[-96.0,-79.5,-7.0,4.0],"y":0.0,"color":"#d9622b"},"callouts":[{"p":[-85.8,2.2,12.4],"t":"RIO-10 遠端 I/O 節點","s":"包裝區・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[-84.18,4.0,-0.23],"t":"WIC-0701 噸袋稱重","s":"包裝機・Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[-85.06,8.3,0.66],"t":"WIT-0710 成品倉稱重","s":"S-703","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[-88.5,6.3,-5.0],"t":"BF-702 集塵差壓","s":"區域集塵","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[-84.18,4.0,-0.23],[-84.18,4.8,-0.23],[-85.8,4.8,12.4],[-85.8,2.2,12.4]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[-85.06,8.3,0.66],[-85.06,9.100000000000001,0.66],[-85.8,9.100000000000001,12.4],[-85.8,2.2,12.4]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-88.5,6.3,-5.0],[-88.5,7.1,-5.0],[-85.8,7.1,12.4],[-85.8,2.2,12.4]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[-85.8,2.2,12.4],[-85.8,11.0,12.4],[6.0,11.0,12.4],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[-84.18,4.0,-0.23],"c":"#8a63ff","win":null},{"p":[-85.06,8.3,0.66],"c":"#2f8fff","win":null},{"p":[-88.5,6.3,-5.0],"c":"#2f8fff","win":null}],"panels":["RIO-10"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#2f8fff","類比輸入 AI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c15","no":"15","short":"空壓純水","title":"U1 空壓・純水","sub":"SW-3／IGW-ENV-01｜西側 +4.8 m 平台・機房棟","desc":"空壓機 110 kW ×3、乾燥機 5 台；二段 RO 16 t/h、純水泵。","kind":"3d","color":"#13897d","io":{"AI":5,"AO":0,"DI":3,"DO":0,"PN":0,"MB":14,"OPC":0,"COM":14,"SIS":0},"io_items":[["空壓機 ×3 狀態・電流",6,"MB"],["乾燥機 ×5",5,"MB"],["RO 撬 電導・流量・壓力",3,"MB"],["母管壓力 PIT-0808（EJA）",1,"AI"],["露點 AIT-DP-01",1,"AI"],["純水槽液位 ×2",2,"AI"],["純水導電度 AIT-EC-08（FLXA21）",1,"AI"],["純水泵 P-802A～C 運轉",3,"DI"]],"design":["廠商控制盤不重寫，Modbus TCP 送狀態","DCS 自量母管壓力、露點 ≤−40 °C、純水導電度","純水 >10 µS/cm 自動排放"],"keys":[["22","點","監控點"],["8","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c15","voice":26.928,"D":30.63,"subs":[[1.35,3.41,"接著是廠務"],[3.41,6.0,"空壓機房在西側四點八米平台"],[6.0,9.51,"三台一百一十千瓦空壓機；純水在機房棟"],[9.51,11.36,"RO 每小時十六噸"],[11.36,13.06,"廠商控制盤我們不重寫"],[13.06,16.0,"規定用 Modbus TCP 送上來"],[16.0,18.94,"CENTUM VP 自己再量母管壓力"],[18.94,22.03,"露點和純水導電度：露點要低於零下四十度"],[22.03,24.5,"導電度超過十微西門子就自動排放"],[24.5,25.74,"二十二個監控點"],[25.74,28.21,"十四個走 Modbus TCP"]],"text":"接著是廠務。空壓機房在西側四點八米平台，三台一百一十千瓦空壓機；純水在機房棟，RO 每小時十六噸。廠商控制盤我們不重寫，規定用 Modbus TCP 送上來，CENTUM VP 自己再量母管壓力、露點和純水導電度：露點要低於零下四十度，導電度超過十微西門子就自動排放。二十二個監控點，十四個走 Modbus TCP。","cam":{"c":[-81.63,6,-18.62],"R":34,"el":40,"T":60,"move":{"c":[12.45,3,6.0],"R":32,"el":42,"k0":0.5,"k1":0.64,"gg":0}},"ghost":true,"ghostRect":[-97.78,-28.81,-65.48,-8.43],"ghostSkip":[],"foot":{"r":[-91.78,-71.48,-22.81,-14.43],"y":4.8,"color":"#13897d"},"callouts":[{"p":[9.5,1.4,3.8],"t":"IGW-ENV-01 廠務閘道","s":"機房棟純水","box":[0.5,0.4,1.8],"color":"#5b4bd6","panel":true,"win":[0.6,1.01]},{"p":[-89.0,6.199999999999999,-21.5],"t":"SW-3 工業交換器","s":"空壓機房 +4.8 m・Modbus TCP","box":[0.5,0.4,1.8],"color":"#5b4bd6","panel":true,"win":[0,0.55]},{"p":[-89.88,7.1,-17.27],"t":"AC-801A 空壓機","s":"Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB","win":[0,0.55]},{"p":[-83.4,8.6,-20.2],"t":"PIT-0808 母管壓力","s":"加卸載","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI","win":[0,0.55]},{"p":[-76.72,7.3,-20.9],"t":"AIT-DP-01 露點","s":"≤−40 °C","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI","win":[0,0.55]},{"p":[11.55,2.5,6.95],"t":"ROU-801 RO 撬","s":"Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB","win":[0.6,1.01]},{"p":[14.9,4.4,2.58],"t":"AIT-EC-08 純水導電度","s":"FLXA21・≤10 µS/cm","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI","win":[0.6,1.01]}],"sig":{"paths":[{"pts":[[-89.88,7.1,-17.27],[-89.88,7.8999999999999995,-17.27],[-89.0,7.8999999999999995,-21.5],[-89.0,6.199999999999999,-21.5]],"c":"#8a63ff","n":3,"v":4.0,"win":[0,0.55]},{"pts":[[-83.4,8.6,-20.2],[-83.4,9.4,-20.2],[-89.0,9.4,-21.5],[-89.0,6.199999999999999,-21.5]],"c":"#2f8fff","n":3,"v":4.0,"win":[0,0.55]},{"pts":[[-76.72,7.3,-20.9],[-76.72,8.1,-20.9],[-89.0,8.1,-21.5],[-89.0,6.199999999999999,-21.5]],"c":"#2f8fff","n":3,"v":4.0,"win":[0,0.55]},{"pts":[[11.55,2.5,6.95],[11.55,3.3,6.95],[9.5,3.3,3.8],[9.5,1.4,3.8]],"c":"#8a63ff","n":3,"v":4.0,"win":[0.6,1.01]},{"pts":[[14.9,4.4,2.58],[14.9,5.2,2.58],[9.5,5.2,3.8],[9.5,1.4,3.8]],"c":"#2f8fff","n":3,"v":4.0,"win":[0.6,1.01]},{"pts":[[-89.0,6.199999999999999,-21.5],[-89.0,11.0,-21.5],[6.0,11.0,-21.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":[0,0.55],"bus":true},{"pts":[[9.5,1.4,3.8],[9.5,11.0,3.8],[6.0,11.0,3.8],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":[0.6,1.01],"bus":true}],"marks":[{"p":[-89.88,7.1,-17.27],"c":"#8a63ff","win":[0,0.55]},{"p":[-83.4,8.6,-20.2],"c":"#2f8fff","win":[0,0.55]},{"p":[-76.72,7.3,-20.9],"c":"#2f8fff","win":[0,0.55]},{"p":[11.55,2.5,6.95],"c":"#8a63ff","win":[0.6,1.01]},{"p":[14.9,4.4,2.58],"c":"#2f8fff","win":[0.6,1.01]}],"panels":["SW-3","IGW-ENV-01"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#2f8fff","類比輸入 AI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#5b4bd6","廠務閘道／交換器"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c16","no":"16","short":"鍋爐","title":"U2 鍋爐・天然氣","sub":"IGW-ENV-02｜東牆外附屬帶 +4.2 m","desc":"燃氣鍋爐 3 t/h ×6（5 用 1 備）、分汽缸、給水與凝結水回收、天然氣遮斷閥組。","kind":"3d","color":"#13897d","io":{"AI":8,"AO":0,"DI":0,"DO":0,"PN":0,"MB":12,"OPC":0,"COM":12,"SIS":0},"io_items":[["鍋爐 ×6 壓力・狀態（台數控制盤）",12,"MB"],["蒸汽流量",3,"AI"],["給水槽液位・溫度",2,"AI"],["天然氣流量・壓力",2,"AI"],["凝結水回收",1,"AI"]],"design":["台數控制盤依分汽缸 0.8 MPa 加減台數，Modbus TCP 進 CENTUM VP","可燃氣體偵測連鎖遮斷天然氣閥、通風機強制運轉","蒸汽・天然氣・凝結水計量進 Exaquantum 能源報表"],"keys":[["20","點","監控點"],["12","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c16","voice":29.88,"D":33.58,"subs":[[1.35,3.9,"鍋爐房在東牆外附屬帶平台"],[3.9,6.44,"六台三噸燃氣鍋爐五用一備"],[6.44,8.4,"供每小時十四噸蒸汽"],[8.4,11.91,"台數控制盤依分汽缸壓力 0.8 MPa 自動加減台數"],[11.91,15.29,"用 Modbus TCP 接進 CENTUM VP"],[15.29,17.66,"鍋爐房可燃氣體一警報"],[17.66,21.54,"就連鎖遮斷天然氣閥、通風機強制運轉"],[21.54,26.82,"蒸汽、天然氣和凝結水都計量，算每噸產品用汽"],[26.82,28.6,"二十個監控點：類比八"],[28.6,31.18,"十二個走 Modbus TCP"]],"text":"鍋爐房在東牆外附屬帶平台，六台三噸燃氣鍋爐五用一備，供每小時十四噸蒸汽。台數控制盤依分汽缸壓力 0.8 MPa 自動加減台數，用 Modbus TCP 接進 CENTUM VP。鍋爐房可燃氣體一警報，就連鎖遮斷天然氣閥、通風機強制運轉。蒸汽、天然氣和凝結水都計量，算每噸產品用汽。二十個監控點：類比八，十二個走 Modbus TCP。","cam":{"c":[3.645,6,48.21],"R":38,"el":26,"T":60,"az0":-85},"ghost":true,"ghostRect":[-5.72,32.97,13.01,63.45],"ghostSkip":[],"foot":{"r":[0.28,7.01,38.97,57.45],"y":4.2,"color":"#13897d"},"callouts":[{"p":[6.0,5.6,42.0],"t":"IGW-ENV-02 廠務閘道","s":"鍋爐房 +4.2 m","box":[0.5,0.4,1.8],"color":"#5b4bd6","panel":true},{"p":[6.65,6.5,51.2],"t":"BP 台數控制盤","s":"Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[2.28,5.7,43.9],"t":"PIT-0809 分汽缸壓力","s":"0.8 MPa","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[6.4,6.6,56.5],"t":"AIT-GAS 可燃氣體","s":"連鎖遮斷","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"},{"p":[1.0,5.7,43.9],"t":"FT 蒸汽總流量","s":"14 t/h","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[6.65,6.5,51.2],[6.65,7.3,51.2],[6.0,7.3,42.0],[6.0,5.6,42.0]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[2.28,5.7,43.9],[2.28,6.5,43.9],[6.0,6.5,42.0],[6.0,5.6,42.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[6.4,6.6,56.5],[6.4,7.3999999999999995,56.5],[6.0,7.3999999999999995,42.0],[6.0,5.6,42.0]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[1.0,5.7,43.9],[1.0,6.5,43.9],[6.0,6.5,42.0],[6.0,5.6,42.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[6.0,5.6,42.0],[6.0,11.0,42.0],[6.0,11.0,42.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[6.65,6.5,51.2],"c":"#8a63ff","win":null},{"p":[2.28,5.7,43.9],"c":"#2f8fff","win":null},{"p":[6.4,6.6,56.5],"c":"#e5383b","win":null},{"p":[1.0,5.7,43.9],"c":"#2f8fff","win":null}],"panels":["IGW-ENV-02"]},"legend":[["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#2f8fff","類比輸入 AI"],["dot","#e5383b","安全系統 ProSafe-RS"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#5b4bd6","廠務閘道／交換器"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c17","no":"17","short":"冷卻水","title":"U3 冷卻水・冰水","sub":"MP-U2｜附屬帶屋頂冷卻塔","desc":"冷卻塔 CT-801A/B、冰水機 20 RT、循環泵 ×3、冰水泵 ×2、旁濾加藥。","kind":"3d","color":"#13897d","io":{"AI":9,"AO":0,"DI":9,"DO":0,"PN":0,"MB":2,"OPC":0,"COM":2,"SIS":0},"io_items":[["供回水溫度",2,"AI"],["冷卻水流量（ADMAG）",1,"AI"],["冰水供回溫",2,"AI"],["旁濾差壓",1,"AI"],["集水盤液位",1,"AI"],["冷卻塔風扇變頻 轉速 ×2",2,"AI"],["冷卻塔風扇運轉 ×2",2,"DI"],["循環泵 ×3 運轉",3,"DI"],["冰水泵 ×2 運轉",2,"DI"],["加藥泵・藥劑低液位",2,"DI"],["冰水機狀態・電流",2,"MB"]],"design":["回水溫 39 °C 控風扇變頻，不整天全速","循環泵依流量與溫差決定台數","冰水供除鐵器，冰水機 Modbus TCP"],"keys":[["20","點","監控點"],["10","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c17","voice":21.432,"D":25.13,"subs":[[1.35,3.42,"冷卻塔在附屬帶屋頂"],[3.42,6.51,"兩座塔加一台二十冷凍噸冰水機"],[6.51,8.89,"回水溫度控制在三十九度"],[8.89,12.65,"風扇變頻跟著回水溫調速，不必整天全速"],[12.65,16.8,"循環泵依流量和溫差決定台數，冰水供除鐵器"],[16.8,19.41,"二十個監控點：類比九、數位九"],[19.41,22.71,"冰水機兩個點走 Modbus TCP"]],"text":"冷卻塔在附屬帶屋頂，兩座塔加一台二十冷凍噸冰水機。回水溫度控制在三十九度，風扇變頻跟著回水溫調速，不必整天全速；循環泵依流量和溫差決定台數，冰水供除鐵器。二十個監控點：類比九、數位九，冰水機兩個點走 Modbus TCP。","cam":{"c":[1.5,12,32.5],"R":34,"el":34,"T":32},"ghost":true,"ghostRect":[-6.5,19.5,9.5,45.5],"ghostSkip":["建物_屋頂_設備層","廠務_冷卻水"],"foot":{"r":[-0.5,3.5,25.5,39.5],"y":10.3,"color":"#13897d"},"callouts":[{"p":[11.0,1.4,28.2],"t":"MP-U2 冷卻塔盤","s":"冷卻塔盤 I/O","box":[0.5,0.4,1.8],"color":"#5b4bd6","panel":true},{"p":[1.35,14.8,27.15],"t":"TIT-0811 回水溫","s":"39 °C → 風扇","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[1.35,14.8,30.45],"t":"CT-801B 風扇變頻","s":"轉速 AI","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[1.25,12.4,34.9],"t":"CH-801 冰水機","s":"Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"}],"sig":{"paths":[{"pts":[[1.35,14.8,27.15],[1.35,15.600000000000001,27.15],[11.0,15.600000000000001,28.2],[11.0,1.4,28.2]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[1.35,14.8,30.45],[1.35,15.600000000000001,30.45],[11.0,15.600000000000001,28.2],[11.0,1.4,28.2]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[1.25,12.4,34.9],[1.25,13.200000000000001,34.9],[11.0,13.200000000000001,28.2],[11.0,1.4,28.2]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[11.0,1.4,28.2],[11.0,11.0,28.2],[6.0,11.0,28.2],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[1.35,14.8,27.15],"c":"#2f8fff","win":null},{"p":[1.35,14.8,30.45],"c":"#2f8fff","win":null},{"p":[1.25,12.4,34.9],"c":"#8a63ff","win":null}],"panels":["MP-U2"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#8a63ff","Modbus TCP 子系統通訊"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#5b4bd6","廠務閘道／交換器"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c18","no":"18","short":"廢氣氮氣","title":"U4 廢氣・氮氣","sub":"IGW-ENV-03＋HS-901｜北牆外洗滌塔","desc":"酸霧洗滌塔 ×2、防爆風機 ×2、循環泵 ×4、NaOH 加藥；液氮槽。","kind":"3d","color":"#13897d","io":{"AI":7,"AO":0,"DI":7,"DO":0,"PN":0,"MB":0,"OPC":0,"COM":0,"SIS":0},"io_items":[["循環液 pH ×2（FLXA21）",2,"AI"],["塔底液位 ×2",2,"AI"],["排氣筒磷酸霧",1,"AI"],["液氮壓力・液位",2,"AI"],["防爆風機 ×2 運轉",2,"DI"],["循環泵 ×4 運轉",4,"DI"],["北牆排風回授",1,"DI"]],"design":["和化鐵氫氣安全同一套 ProSafe-RS：總管 25% 停進料、全速排風","循環液 pH 8～9 自動加鹼","排氣筒磷酸霧連續監測供空污申報"],"keys":[["14","點","監控點"],["12","條","警報規則"],["1","站","I/O 站"]],"lead":1.3,"aid":"c18","voice":22.44,"D":26.14,"subs":[[1.35,4.52,"北牆外兩座酸霧洗滌塔處理化鐵的含氫排氣"],[4.52,8.32,"和化鐵的氫氣安全是同一套 ProSafe-RS"],[8.32,10.37,"排氣總管和排氣筒都量氫氣"],[10.37,13.22,"總管到百分之二十五停進料、全速排風"],[13.23,16.53,"循環液 pH 控在八到九自動加鹼"],[16.53,19.84,"排氣筒磷酸霧連續監測，給空污申報"],[19.84,23.73,"十四個監控點：類比七、數位七"]],"text":"北牆外兩座酸霧洗滌塔處理化鐵的含氫排氣，和化鐵的氫氣安全是同一套 ProSafe-RS：排氣總管和排氣筒都量氫氣，總管到百分之二十五停進料、全速排風。循環液 pH 控在八到九自動加鹼，排氣筒磷酸霧連續監測，給空污申報。十四個監控點：類比七、數位七。","cam":{"c":[11.5,5,-58.5],"R":38,"el":36,"T":34},"ghost":true,"ghostRect":[0.0,-68.0,23.0,-49.0],"ghostSkip":[],"foot":{"r":[6.0,17.0,-62.0,-55.0],"y":0.0,"color":"#13897d"},"callouts":[{"p":[17.0,1.4,-57.0],"t":"IGW-ENV-03 廠務閘道","s":"洗滌塔旁","box":[0.5,0.4,1.8],"color":"#5b4bd6","panel":true},{"p":[14.4,2.2,-58.85],"t":"HS-901 氫氣偵測盤","s":"接 SIS-01","box":[0.5,0.4,1.8],"color":"#c62828","panel":true},{"p":[9.8,15.3,-61.1],"t":"AIT-H2-10 排氣筒氫氣","s":"ProSafe-RS","box":[0.4,0.4,0.8],"color":"#e5383b","inst":"SIS"},{"p":[12.0,8.3,-58.2],"t":"AIC-pH-09 循環液 pH","s":"8～9 加鹼","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[12.8,15.3,-61.1],"t":"AIT-PA-01 磷酸霧","s":"空污申報","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[8.3,9.1,-60.6],"t":"FN-901A 防爆風機","s":"運轉 DI","box":[0.4,0.4,0.8],"color":"#1fb36b","inst":"DI"}],"sig":{"paths":[{"pts":[[9.8,15.3,-61.1],[9.8,16.1,-61.1],[14.4,16.1,-58.85],[14.4,2.2,-58.85]],"c":"#e5383b","n":3,"v":4.0,"win":null},{"pts":[[12.0,8.3,-58.2],[12.0,9.100000000000001,-58.2],[17.0,9.100000000000001,-57.0],[17.0,1.4,-57.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[12.8,15.3,-61.1],[12.8,16.1,-61.1],[17.0,16.1,-57.0],[17.0,1.4,-57.0]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[8.3,9.1,-60.6],[8.3,9.9,-60.6],[17.0,9.9,-57.0],[17.0,1.4,-57.0]],"c":"#1fb36b","n":3,"v":4.0,"win":null},{"pts":[[14.4,2.2,-58.85],[14.4,11.0,-58.85],[6.0,11.0,-58.85],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true},{"pts":[[17.0,1.4,-57.0],[17.0,11.0,-57.0],[6.0,11.0,-57.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[9.8,15.3,-61.1],"c":"#e5383b","win":null},{"p":[12.0,8.3,-58.2],"c":"#2f8fff","win":null},{"p":[12.8,15.3,-61.1],"c":"#2f8fff","win":null},{"p":[8.3,9.1,-60.6],"c":"#1fb36b","win":null}],"panels":["HS-901","IGW-ENV-03"]},"legend":[["dot","#e5383b","安全系統 ProSafe-RS"],["dot","#2f8fff","類比輸入 AI"],["dot","#1fb36b","數位輸入 DI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#c62828","SIS（ProSafe-RS）"],["box","#5b4bd6","廠務閘道／交換器"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c19","no":"19","short":"廢水結晶","title":"U5 廢水結晶","sub":"U5 I/O 站｜預1 協雅 EV-901A/B","desc":"協雅蒸汽低溫結晶 EV-901A/B（撬裝 PLC）、集水池 T-902、進料泵 P-903A/B、放流口監測。","kind":"3d","color":"#13897d","io":{"AI":5,"AO":0,"DI":3,"DO":0,"PN":0,"MB":17,"OPC":0,"COM":17,"SIS":0},"io_items":[["協雅撬裝 PLC（子系統通訊）",17,"MB"],["T-902 集水池液位",1,"AI"],["放流口 pH",1,"AI"],["放流瞬時・累計流量（ADMAG）",2,"AI"],["EV-901 蒸汽流量",1,"AI"],["P-903A/B 運轉",2,"DI"],["T-907 高液位（硬線停泵）",1,"DI"]],"design":["協雅 PLC 自控結晶，17 點 Modbus TCP 進 CENTUM VP","T-907 高液位硬線停進料泵，斷線也停","放流 pH 超出 6～9 撤銷放流許可"],"keys":[["25","點","監控點"],["13","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c19","voice":28.56,"D":32.26,"subs":[[1.35,5.14,"預一廢水站用協雅蒸汽低溫結晶系統"],[5.14,7.31,"協雅撬裝 PLC 自己控制結晶"],[7.31,10.15,"我們用 Modbus TCP 接十七個點"],[10.15,13.68,"集水池液位和進料泵由 CENTUM VP 直接控制"],[13.68,17.67,"原廢水槽高液位是硬線，直接停進料泵"],[17.67,19.23,"通訊斷線也停"],[19.23,22.05,"放流口 pH 和流量每秒記錄"],[22.05,25.06,"pH 超出六到九就撤銷放流許可"],[25.06,29.85,"二十五個監控點：通訊十七、類比五、數位三"]],"text":"預一廢水站用協雅蒸汽低溫結晶系統。協雅撬裝 PLC 自己控制結晶，我們用 Modbus TCP 接十七個點；集水池液位和進料泵由 CENTUM VP 直接控制。原廢水槽高液位是硬線，直接停進料泵，通訊斷線也停。放流口 pH 和流量每秒記錄，pH 超出六到九就撤銷放流許可。二十五個監控點：通訊十七、類比五、數位三。","cam":{"c":[13.25,2,43.0],"R":42,"el":54,"T":34},"ghost":true,"ghostRect":[1.5,21.5,25.0,64.5],"ghostSkip":[],"foot":{"r":[7.5,19.0,27.5,58.5],"y":0.0,"color":"#13897d"},"callouts":[{"p":[13.4,2.2,46.6],"t":"U5 遠端 I/O 節點","s":"MP-U5 盤旁・N-IO","box":[0.5,0.4,1.8],"color":"#1d7a46","panel":true},{"p":[13.0,1.8,55.0],"t":"LIT-0940 集水池液位","s":"P-903 啟停","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[9.98,2.5,30.04],"t":"LSH T-907 高液位","s":"硬線停泵","box":[0.4,0.4,0.8],"color":"#1fb36b","inst":"DI"},{"p":[11.64,4.3,33.16],"t":"EV-901A 協雅 PLC","s":"Modbus TCP 17 點","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[9.14,1.5,41.07],"t":"AIC-pH-11 放流 pH","s":"6～9","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"}],"sig":{"paths":[{"pts":[[13.0,1.8,55.0],[13.0,3.0,55.0],[13.4,3.0,46.6],[13.4,2.2,46.6]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[9.98,2.5,30.04],[9.98,3.3,30.04],[13.4,3.3,46.6],[13.4,2.2,46.6]],"c":"#1fb36b","n":3,"v":4.0,"win":null},{"pts":[[11.64,4.3,33.16],[11.64,5.1,33.16],[13.4,5.1,46.6],[13.4,2.2,46.6]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[9.14,1.5,41.07],[9.14,3.0,41.07],[13.4,3.0,46.6],[13.4,2.2,46.6]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[13.4,2.2,46.6],[13.4,11.0,46.6],[6.0,11.0,46.6],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[13.0,1.8,55.0],"c":"#2f8fff","win":null},{"p":[9.98,2.5,30.04],"c":"#1fb36b","win":null},{"p":[11.64,4.3,33.16],"c":"#8a63ff","win":null},{"p":[9.14,1.5,41.07],"c":"#2f8fff","win":null}],"panels":["U5-IO"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#1fb36b","數位輸入 DI"],["dot","#8a63ff","Modbus TCP 子系統通訊"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c20","no":"20","short":"電力","title":"E 電力・緊急電源","sub":"IGW-PWR｜C1 配電站","desc":"新設變壓器 4 台、低壓進線與廠務總盤、G1 緊急發電機、UPS、消防泵盤。","kind":"3d","color":"#b98200","io":{"AI":4,"AO":0,"DI":4,"DO":0,"PN":0,"MB":12,"OPC":0,"COM":12,"SIS":0},"io_items":[["迴路電表 ×12",12,"MB"],["變壓器溫度 ×4",4,"AI"],["G1 發電機・ATS",2,"DI"],["UPS 狀態",1,"DI"],["消防泵盤狀態",1,"DI"]],"design":["智慧電表 Modbus TCP 進 CENTUM VP，Exaquantum 出能源報表","契約需量即時看，窯電熱排程避開尖峰","發電機、ATS、UPS、消防泵狀態上中控"],"keys":[["20","點","監控點"],["10","條","警報規則"],["2","站","I/O 站"]],"lead":1.3,"aid":"c20","voice":25.032,"D":28.73,"subs":[[1.35,3.42,"最後是電力"],[3.42,5.82,"四台新設變壓器和主要饋線裝智慧電表"],[5.82,9.29,"用 Modbus TCP 接進 CENTUM VP"],[9.29,12.22,"資料存進 Exaquantum 做能源報表"],[12.22,14.75,"契約需量即時看，窯的電熱排程避開尖峰"],[14.75,17.03,"發電機、自動切換開關"],[17.03,20.55,"UPS 和消防泵盤狀態也都上中控"],[20.55,23.18,"二十個監控點：類比四、數位四"],[23.18,26.32,"電表十二個走 Modbus TCP"]],"text":"最後是電力。四台新設變壓器和主要饋線裝智慧電表，用 Modbus TCP 接進 CENTUM VP，資料存進 Exaquantum 做能源報表，契約需量即時看，窯的電熱排程避開尖峰。發電機、自動切換開關、UPS 和消防泵盤狀態也都上中控。二十個監控點：類比四、數位四，電表十二個走 Modbus TCP。","cam":{"c":[9.0,1.5,-7.5],"R":36,"el":42,"T":40},"ghost":true,"ghostRect":[-5.0,-20.0,23.0,5.0],"ghostSkip":[],"foot":{"r":[1.0,17.0,-14.0,-1.0],"y":0.0,"color":"#b98200"},"callouts":[{"p":[6.0,1.4,-6.4],"t":"IGW-PWR 電力閘道","s":"E1 配電站","box":[0.5,0.4,1.8],"color":"#5b4bd6","panel":true},{"p":[6.6,2.4,-12.76],"t":"TR-H1 溫度","s":"窯#1 變壓器","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[15.3,2.4,-12.37],"t":"TR-P1 溫度","s":"前段變壓器","box":[0.4,0.4,0.8],"color":"#2f8fff","inst":"AI"},{"p":[10.5,2.7,-6.4],"t":"MP-U 電表","s":"Modbus TCP","box":[0.4,0.4,0.8],"color":"#8a63ff","inst":"MB"},{"p":[14.68,2.4,2.5],"t":"G1 發電機・ATS","s":"400 kVA","box":[0.4,0.4,0.8],"color":"#1fb36b","inst":"DI"}],"sig":{"paths":[{"pts":[[6.6,2.4,-12.76],[6.6,3.2,-12.76],[6.0,3.2,-6.4],[6.0,1.4,-6.4]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[15.3,2.4,-12.37],[15.3,3.2,-12.37],[6.0,3.2,-6.4],[6.0,1.4,-6.4]],"c":"#2f8fff","n":3,"v":4.0,"win":null},{"pts":[[10.5,2.7,-6.4],[10.5,3.5,-6.4],[6.0,3.5,-6.4],[6.0,1.4,-6.4]],"c":"#8a63ff","n":3,"v":4.0,"win":null},{"pts":[[14.68,2.4,2.5],[14.68,3.2,2.5],[6.0,3.2,-6.4],[6.0,1.4,-6.4]],"c":"#1fb36b","n":3,"v":4.0,"win":null},{"pts":[[6.0,1.4,-6.4],[6.0,11.0,-6.4],[6.0,11.0,-6.4],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":4,"v":9.0,"win":null,"bus":true}],"marks":[{"p":[6.6,2.4,-12.76],"c":"#2f8fff","win":null},{"p":[15.3,2.4,-12.37],"c":"#2f8fff","win":null},{"p":[10.5,2.7,-6.4],"c":"#8a63ff","win":null},{"p":[14.68,2.4,2.5],"c":"#1fb36b","win":null}],"panels":["IGW-PWR"]},"legend":[["dot","#2f8fff","類比輸入 AI"],["dot","#8a63ff","Modbus TCP 子系統通訊"],["dot","#1fb36b","數位輸入 DI"],["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["box","#5b4bd6","廠務閘道／交換器"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]},{"id":"c21","no":"21","short":"時程","title":"時程","sub":"P0～P6｜配合 2027/3 試產","desc":"10/31 品牌凍結 → 11 月長交期下單 → 11/30 光華電氣圖與點表 → 2027/1 FAT → 2027/3 SAT 與試產 → 2027/7 出貨。","kind":"page","color":"#0f4c81","keys":[["2026/10/31","","品牌凍結"],["2027/3","","SAT・試產"]],"lead":1.3,"aid":"c21","voice":26.616,"D":30.32,"subs":[[1.35,5.09,"時程上，自動化不能拖產線後腿"],[5.09,8.27,"十月底凍結品牌、完成主承包商決標"],[8.27,9.95,"十一月長交期下單"],[9.95,12.94,"十一月底前拿到光華各機的電氣圖"],[12.94,15.19,"PLC 點表和通訊協定"],[15.19,16.64,"明年一月做 FAT"],[16.64,20.56,"控制邏輯先在 CENTUM VP 的模擬測試環境跑過"],[20.56,22.74,"光華子系統的通訊點表逐點對過"],[22.74,26.57,"三月 SAT 和試產，七月客戶驗證出貨"],[26.57,27.91,"再爬坡到達產"]],"text":"時程上，自動化不能拖產線後腿。十月底凍結品牌、完成主承包商決標，十一月長交期下單，十一月底前拿到光華各機的電氣圖、PLC 點表和通訊協定。明年一月做 FAT，控制邏輯先在 CENTUM VP 的模擬測試環境跑過，光華子系統的通訊點表逐點對過。三月 SAT 和試產，七月客戶驗證出貨，再爬坡到達產。","cam":{"c":[-17.0,2,-2.0],"R":240,"el":34,"T":160,"az0":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[],"sig":{"paths":[],"marks":[],"panels":[]},"legend":[],"page":"<div class=\"pg pg-sched \" data-links='[]'><svg class=\"pl\"><\/svg><div class='gantt'><div class='gh'><span style='left:0.00%'>2026/9<\/span><span style='left:18.18%'>2027/1<\/span><span style='left:31.82%'>4<\/span><span style='left:45.45%'>7<\/span><span style='left:59.09%'>10<\/span><span style='left:72.73%'>2028/1<\/span><span style='left:86.36%'>4<\/span><\/div><div class='gb'><div class='gr' data-a=\"5.09\"><b>P0 決策・MAC 遴選<\/b><div class='gt'><i style='left:0.00%;width:9.09%'><\/i><span style='left:0.00%'>品牌與 MAC 邀標<\/span><\/div><\/div><div class='gr' data-a=\"5.09\"><b>P1 基本設計<\/b><div class='gt'><i style='left:4.55%;width:9.09%'><\/i><span style='left:4.55%'>I/O 清單・網路分區・品牌凍結<\/span><\/div><\/div><div class='gr' data-a=\"8.27\"><b>P2 詳細設計・採購<\/b><div class='gt'><i style='left:9.09%;width:9.09%'><\/i><span style='left:9.09%'>長交期下單・光華電氣圖與 PLC 點表<\/span><\/div><\/div><div class='gr' data-a=\"15.19\"><b>P3 到貨安裝<\/b><div class='gt'><i style='left:18.18%;width:13.64%'><\/i><span style='left:18.18%'>FAT（CENTUM VP 模擬測試・光華點表逐點對）<\/span><\/div><\/div><div class='gr' data-a=\"22.74\"><b>P4 試車・SAT<\/b><div class='gt'><i style='left:22.73%;width:13.64%'><\/i><span style='left:22.73%'>SIS 驗證・氫氣連鎖測試・試產 2027/3<\/span><\/div><\/div><div class='gr' data-a=\"24.85\"><b>P5 客戶驗證出貨<\/b><div class='gt'><i style='left:31.82%;width:18.18%'><\/i><span style='left:31.82%'>譜系演練・2027/7 出貨<\/span><\/div><\/div><div class='gr' data-a=\"27.34\"><b>P6 爬坡達產<\/b><div class='gt'><i style='left:50.00%;width:50.00%'><\/i><span style='left:50.00%'>OEE・異常偵測・閃蒸數位雙生<\/span><\/div><\/div><div class='gm'><div class='ms' style='left:8.64%' data-a=\"5.09\"><i><\/i><span style='top:-0.1em'>2026/10/31 品牌凍結<\/span><\/div><div class='ms' style='left:22.27%' data-a=\"15.19\"><i><\/i><span style='top:1.4em'>2027/1 FAT<\/span><\/div><div class='ms' style='left:31.36%' data-a=\"22.74\"><i><\/i><span style='top:-0.1em'>2027/3 SAT・試產<\/span><\/div><div class='ms' style='left:49.55%' data-a=\"24.85\"><i><\/i><span style='top:1.4em'>2027/7 出貨<\/span><\/div><\/div><\/div><div class='note' data-a=\"22.01\">光華整機：11/30 前拿到電氣圖、PLC 點表與通訊協定，FAT 時子系統通訊逐點對過<\/div><\/div><\/div>"},{"id":"c22","no":"22","short":"預算","title":"預算（預估）","sub":"預估報價 未稅 1.21 億｜AACE Class 4","desc":"涵蓋控制、安全、儀表、網路資安、MES、戰情中心與工程服務；不含製程主機、控制閥、儀控電纜與配電。","kind":"page","color":"#0f4c81","keys":[["121,117,000","元","預估報價（未稅）"],["127,172,850","元","含稅"]],"lead":1.3,"aid":"c22","voice":24.648,"D":28.35,"subs":[[1.35,2.3,"預算方面"],[2.3,6.66,"這一版預估報價未稅一億兩千一百一十一萬七千元"],[6.66,9.5,"含稅約一億兩千七百一十七萬元"],[9.5,14.41,"最大的是工程服務、控制系統、現場儀表和 MES"],[14.41,18.44,"不含製程主機、控制閥、儀控電纜和配電"],[18.44,21.82,"那些在設備包、管線和電氣工程裡"],[21.82,24.41,"精度是 AACE Class 4"],[24.41,25.94,"基本設計完成後更新"]],"text":"預算方面，這一版預估報價未稅一億兩千一百一十一萬七千元，含稅約一億兩千七百一十七萬元。最大的是工程服務、控制系統、現場儀表和 MES。不含製程主機、控制閥、儀控電纜和配電，那些在設備包、管線和電氣工程裡。精度是 AACE Class 4，基本設計完成後更新。","cam":{"c":[-17.0,2,-2.0],"R":240,"el":34,"T":160,"az0":-40},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[],"sig":{"paths":[],"marks":[],"panels":[]},"legend":[],"page":"<div class=\"pg pg-budget \" data-links='[]'><svg class=\"pl\"><\/svg><div class='two bud'><div class='col'><div class='bg' data-a=\"0.80\"><b>M 工程服務<\/b><div class='bt'><i style='width:100.0%'><\/i><span>2,205 萬<\/span><\/div><\/div><div class='bg' data-a=\"1.02\"><b>A 控制系統（DCS／批次）<\/b><div class='bt'><i style='width:97.4%'><\/i><span>2,148 萬<\/span><\/div><\/div><div class='bg' data-a=\"1.24\"><b>C 現場儀表與分析儀<\/b><div class='bt'><i style='width:90.0%'><\/i><span>1,985 萬<\/span><\/div><\/div><div class='bg' data-a=\"1.46\"><b>F MES 製造營運<\/b><div class='bt'><i style='width:66.7%'><\/i><span>1,470 萬<\/span><\/div><\/div><div class='bg' data-a=\"1.68\"><b>E 工業網路與資安<\/b><div class='bt'><i style='width:35.0%'><\/i><span>772 萬<\/span><\/div><\/div><div class='bg' data-a=\"1.90\"><b>D 電氣控制介面<\/b><div class='bt'><i style='width:34.6%'><\/i><span>762 萬<\/span><\/div><\/div><div class='bg' data-a=\"2.12\"><b>B 安全儀表系統 SIS<\/b><div class='bt'><i style='width:29.4%'><\/i><span>648 萬<\/span><\/div><\/div><div class='bg' data-a=\"2.34\"><b>J 戰情中心與資料平台<\/b><div class='bt'><i style='width:29.2%'><\/i><span>643 萬<\/span><\/div><\/div><div class='bg' data-a=\"2.56\"><b>L 包裝與物料追溯<\/b><div class='bt'><i style='width:16.1%'><\/i><span>356 萬<\/span><\/div><\/div><div class='bg' data-a=\"2.78\"><b>H 能源管理 EMS<\/b><div class='bt'><i style='width:15.9%'><\/i><span>350 萬<\/span><\/div><\/div><div class='bg' data-a=\"3.00\"><b>G LIMS 介接<\/b><div class='bt'><i style='width:13.1%'><\/i><span>288 萬<\/span><\/div><\/div><div class='bg' data-a=\"3.22\"><b>K 數位主檔與虛擬調試<\/b><div class='bt'><i style='width:12.9%'><\/i><span>285 萬<\/span><\/div><\/div><div class='bg' data-a=\"3.44\"><b>N 兩年備品<\/b><div class='bt'><i style='width:9.1%'><\/i><span>200 萬<\/span><\/div><\/div><\/div><div class='col side'><div class='kpi big' data-a=\"4.00\"><small>預估報價（未稅）<\/small><b>121,117,000<\/b><span>元<\/span><\/div><div class='kpi' data-a=\"6.66\"><small>含稅 5%<\/small><b>127,172,850<\/b><span>元<\/span><\/div><div class='kpi ex' data-a=\"14.41\"><small>不含<\/small><span>製程主機與廠務設備本體、控制閥（約 1,060 萬，管線工程）、儀控電纜（約 650 萬，電氣工程）、配電與 UPS、第二年起維運<\/span><\/div><div class='kpi ex' data-a=\"23.20\"><small>精度<\/small><span>AACE Class 4（−15%～+30%），P1 基本設計後更新<\/span><\/div><\/div><\/div><\/div>"},{"id":"c23","no":"23","short":"效益","title":"導入效益","sub":"少人化・良率・能耗・可追溯","desc":"效益為我們的估算；北美長約准入，才是這筆投資真正的價值。","kind":"3d","color":"#0f4c81","keys":[["30–35","人","達產編制（三班）"],["98.5","%","一次良率目標"],["6–9","%","電力與熱能節省"],["2,080","萬/年","達產年效益（估）"]],"lead":1.3,"aid":"c23","voice":31.752,"D":35.45,"subs":[[1.35,5.03,"導入後要的結果是：達產編制三十到三十五人"],[5.03,7.49,"基礎方案要四十二到四十八人"],[7.49,10.12,"一次良率目標百分之九十八點五"],[10.12,12.4,"電力和熱能省百分之六到九"],[12.4,16.03,"加起來我們估每年效益約兩千零八十萬元"],[16.03,18.12,"增量投資大約四年回收"],[18.12,21.71,"更重要的是，每一包成品都追得到上游參數"],[21.71,25.11,"中控、安全系統和 MES 全部非中資"],[25.11,27.08,"這是拿北美長約的門票"],[27.07,31.18,"柳營廠的自動化，我們就照這張圖做到底"],[31.18,33.04,"謝謝大家"]],"text":"導入後要的結果是：達產編制三十到三十五人，基礎方案要四十二到四十八人；一次良率目標百分之九十八點五；電力和熱能省百分之六到九。加起來我們估每年效益約兩千零八十萬元，增量投資大約四年回收。更重要的是，每一包成品都追得到上游參數，中控、安全系統和 MES 全部非中資，這是拿北美長約的門票。柳營廠的自動化，我們就照這張圖做到底。謝謝大家。","cam":{"c":[-16.5,2,-2.5],"R":240,"el":34,"T":120},"ghost":true,"ghostRect":[0,0,0,0],"ghostGlobal":0.6,"ghostSkip":[],"callouts":[{"p":[34.0,3.0,-2.0],"t":"中控室・戰情中心","s":"HIS 操作站＋Exaquantum＋影像牆","box":[1,1,2],"color":"#ff7a1a","panel":true},{"p":[6.0,2.2,-9.5],"t":"Vnet/IP 控制網路核心","s":"雙重化・E1 配電站","box":[1,1,2],"color":"#0f6fd6","panel":true}],"sig":{"paths":[{"pts":[[-24.0,2.2,-60.78],[-24.0,11.0,-60.78],[6.0,11.0,-60.78],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-17.5,2.2,-39.0],[-17.5,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-14.8,2.2,-39.0],[-14.8,11.0,-39.0],[6.0,11.0,-39.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-48.0,2.2,-10.0],[-48.0,11.0,-10.0],[6.0,11.0,-10.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-17.0,2.2,-23.3],[-17.0,11.0,-23.3],[6.0,11.0,-23.3],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-16.8,2.2,17.65],[-16.8,11.0,17.65],[6.0,11.0,17.65],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-33.0,2.2,-1.9],[-33.0,11.0,-1.9],[6.0,11.0,-1.9],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-58.5,2.2,12.36],[-58.5,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-55.8,2.2,12.36],[-55.8,11.0,12.36],[6.0,11.0,12.36],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-75.75,2.2,-12.5],[-75.75,11.0,-12.5],[6.0,11.0,-12.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-87.99,2.2,-12.5],[-87.99,11.0,-12.5],[6.0,11.0,-12.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-85.8,2.2,12.4],[-85.8,11.0,12.4],[6.0,11.0,12.4],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[-89.0,6.199999999999999,-21.5],[-89.0,11.0,-21.5],[6.0,11.0,-21.5],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[9.5,1.4,3.8],[9.5,11.0,3.8],[6.0,11.0,3.8],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[6.0,5.6,42.0],[6.0,11.0,42.0],[6.0,11.0,42.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[11.0,1.4,28.2],[11.0,11.0,28.2],[6.0,11.0,28.2],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[17.0,1.4,-57.0],[17.0,11.0,-57.0],[6.0,11.0,-57.0],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[13.4,2.2,46.6],[13.4,11.0,46.6],[6.0,11.0,46.6],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[6.0,1.4,-6.4],[6.0,11.0,-6.4],[6.0,11.0,-6.4],[6.0,11.0,-9.5],[6.0,2.2,-9.5]],"c":"#0f6fd6","n":3,"v":12.0,"bus":true},{"pts":[[6.0,2.2,-9.5],[6.0,11.0,-9.5],[34.0,11.0,-9.5],[34.0,11.0,-2.0],[34.0,3.0,-2.0]],"c":"#ff7a1a","n":6,"v":12.0,"bus":true}],"marks":[],"panels":["RIO-01","RIO-02","SIS-01","RIO-03","RIO-04","RIO-05","RIO-06","RIO-07","SIS-02","RIO-08","RIO-09","RIO-10","SW-3","IGW-ENV-01","IGW-ENV-02","MP-U2","IGW-ENV-03","U5-IO","IGW-PWR","core","ctrl"]},"legend":[["box","#1d7a46","RIO 遠端 I/O 節點（N-IO）"],["flow","#0f6fd6","Vnet/IP 控制網路 → 中控"]]}],"palette":{"materials":{"地面":{"rgb":[196,198,196],"alpha":1.0,"metallic":0.0,"roughness":0.95,"pattern":"asphalt","note":"廠區柏油鋪面"},"室內_實驗桌櫃":{"rgb":[232,234,237],"alpha":1.0,"metallic":0.05,"roughness":0.4,"note":"實驗桌（環氧樹脂桌面）"},"室內_實驗設備":{"rgb":[214,218,222],"alpha":1.0,"metallic":0.25,"roughness":0.45,"note":"實驗儀器（白灰外殼）"},"室內_椅子":{"rgb":[52,54,60],"alpha":1.0,"metallic":0.1,"roughness":0.7,"note":"辦公椅（黑）"},"室內_櫃體":{"rgb":[202,202,196],"alpha":1.0,"metallic":0.3,"roughness":0.5,"note":"鋼製文件櫃"},"室內_玻璃":{"rgb":[175,212,232],"alpha":0.3,"metallic":0.1,"roughness":0.05,"note":"室內玻璃隔間"},"室內_設備細部":{"rgb":[70,74,82],"alpha":1.0,"metallic":0.4,"roughness":0.5},"室內_辦公家具":{"rgb":[170,128,86],"alpha":1.0,"metallic":0.0,"roughness":0.6,"note":"木紋辦公家具"},"室內_隔間":{"rgb":[236,234,228],"alpha":1.0,"metallic":0.0,"roughness":0.8,"note":"輕隔間（白）"},"廠務_倉儲":{"rgb":[206,116,44],"alpha":1.0,"metallic":0.3,"roughness":0.5,"note":"倉儲貨架（橘色橫梁）"},"廠務_冷卻水":{"rgb":[122,162,176],"alpha":1.0,"metallic":0.0,"roughness":0.5,"note":"FRP 冷卻水塔"},"廠務_天然氣":{"rgb":[226,188,36],"alpha":1.0,"metallic":0.25,"roughness":0.45,"note":"天然氣整壓站（黃色）"},"廠務_廢氣":{"rgb":[182,184,178],"alpha":1.0,"metallic":0.0,"roughness":0.55,"note":"PP 洗滌塔（灰）"},"廠務_廢水處理":{"rgb":[198,201,206],"alpha":1.0,"metallic":0.9,"roughness":0.24,"note":"不鏽鋼 SUS304／316L 2B 面"},"廠務_氮氣":{"rgb":[232,232,228],"alpha":1.0,"metallic":0.2,"roughness":0.4,"note":"氮氣機／儲氣槽（白色烤漆）"},"廠務_空壓":{"rgb":[120,150,176],"alpha":1.0,"metallic":0.3,"roughness":0.45,"note":"空壓機箱體（藍灰烤漆）"},"廠務_純水":{"rgb":[62,112,178],"alpha":1.0,"metallic":0.1,"roughness":0.4,"note":"RO 膜管（藍色 FRP）＋不鏽鋼機架"},"廠務_鍋爐":{"rgb":[182,58,48],"alpha":1.0,"metallic":0.3,"roughness":0.42,"note":"鍋爐外殼（紅色烤漆）"},"廠務_附件":{"rgb":[104,106,112],"alpha":1.0,"metallic":0.5,"roughness":0.5},"廠務_集塵":{"rgb":[152,158,162],"alpha":1.0,"metallic":0.3,"roughness":0.55,"note":"集塵機（灰色烤漆）"},"建物_地坪":{"rgb":[205,214,207],"alpha":1.0,"metallic":0.0,"roughness":0.32,"note":"環氧樹脂地坪（淡綠灰）"},"建物_天車":{"rgb":[232,172,28],"alpha":1.0,"metallic":0.2,"roughness":0.45,"note":"天車（黃色烤漆）"},"建物_屋頂_太陽能":{"rgb":[150,164,188],"alpha":1.0,"metallic":0.45,"roughness":0.22,"pattern":"solar","note":"屋頂太陽能板（深藍單晶）"},"建物_屋頂_設備層":{"rgb":[176,176,170],"alpha":1.0,"metallic":0.0,"roughness":0.85,"note":"屋頂設備層 RC 版"},"建物_既有平台":{"rgb":[150,152,150],"alpha":1.0,"metallic":0.3,"roughness":0.6,"note":"既有鋼平台"},"建物_柱":{"rgb":[168,168,163],"alpha":1.0,"metallic":0.0,"roughness":0.88,"note":"RC 柱（清水混凝土灰）"},"建物_樓板":{"rgb":[182,180,172],"alpha":1.0,"metallic":0.0,"roughness":0.88,"note":"RC 樓板（鍋爐房平台、純水上段 2F）"},"建物_牆":{"rgb":[206,210,212],"alpha":1.0,"metallic":0.35,"roughness":0.5,"pattern":"corrugated","note":"金屬浪板外牆（淺灰）"},"建物_玻璃":{"rgb":[165,205,225],"alpha":0.32,"metallic":0.1,"roughness":0.05,"note":"清玻璃"},"建物_門窗":{"rgb":[150,158,166],"alpha":1.0,"metallic":0.55,"roughness":0.4,"note":"鋁門窗框／捲門"},"建物_隔間_鍋爐房":{"rgb":[214,210,200],"alpha":1.0,"metallic":0.0,"roughness":0.8,"note":"鍋爐房防火隔間（1 小時防火構造）"},"既有_保留設施":{"rgb":[166,166,162],"alpha":1.0,"metallic":0.15,"roughness":0.8,"note":"既有保留設施"},"架台_基座":{"rgb":[176,181,184],"alpha":1.0,"metallic":0.75,"roughness":0.42,"note":"鋼製基座（熱浸鍍鋅）"},"架台_基礎墩":{"rgb":[182,180,172],"alpha":1.0,"metallic":0.0,"roughness":0.92,"note":"混凝土"},"架台_小梁":{"rgb":[146,152,157],"alpha":1.0,"metallic":0.25,"roughness":0.5,"note":"小梁（灰色烤漆）"},"架台_底板接頭":{"rgb":[120,126,131],"alpha":1.0,"metallic":0.3,"roughness":0.5,"note":"底板／接頭板（灰色烤漆）"},"架台_斜撐":{"rgb":[132,139,144],"alpha":1.0,"metallic":0.25,"roughness":0.52,"note":"斜撐（灰色烤漆）"},"架台_柱":{"rgb":[138,145,150],"alpha":1.0,"metallic":0.25,"roughness":0.5,"note":"鋼構灰色烤漆（RAL 7001 銀灰）"},"架台_格柵板":{"rgb":[168,173,176],"alpha":0.45,"metallic":0.75,"roughness":0.5,"pattern":"grating","note":"熱浸鍍鋅格柵板"},"架台_梁":{"rgb":[138,145,150],"alpha":1.0,"metallic":0.25,"roughness":0.5,"note":"鋼構灰色烤漆（RAL 7001 銀灰）"},"架台_樓梯":{"rgb":[150,156,160],"alpha":1.0,"metallic":0.3,"roughness":0.5,"note":"樓梯（側板灰漆＋鍍鋅踏板）"},"架台_欄杆":{"rgb":[240,188,22],"alpha":1.0,"metallic":0.15,"roughness":0.45,"note":"安全黃烤漆"},"架台_螺栓":{"rgb":[62,64,68],"alpha":1.0,"metallic":0.7,"roughness":0.4,"note":"螺栓螺帽（鍍鋅後深灰）"},"管架_基礎墩":{"rgb":[182,180,172],"alpha":1.0,"metallic":0.0,"roughness":0.92,"note":"混凝土"},"管架_底板接頭":{"rgb":[158,162,165],"alpha":1.0,"metallic":0.7,"roughness":0.5,"note":"鍍鋅底板／接頭板"},"管架_斜撐":{"rgb":[166,171,174],"alpha":1.0,"metallic":0.75,"roughness":0.48,"note":"熱浸鍍鋅斜撐"},"管架_柱":{"rgb":[172,177,180],"alpha":1.0,"metallic":0.75,"roughness":0.45,"note":"熱浸鍍鋅 ≥550 g/m²"},"管架_梁":{"rgb":[172,177,180],"alpha":1.0,"metallic":0.75,"roughness":0.45,"note":"熱浸鍍鋅 ≥550 g/m²"},"管架_螺栓":{"rgb":[62,64,68],"alpha":1.0,"metallic":0.7,"roughness":0.4,"note":"螺栓螺帽（鍍鋅後深灰）"},"管路_乾燥空氣":{"rgb":[150,200,214],"alpha":1.0,"metallic":0.2,"roughness":0.45,"note":"乾燥空氣：淺藍灰"},"管路_冰水":{"rgb":[172,206,230],"alpha":1.0,"metallic":0.1,"roughness":0.55,"note":"冰水：保冷外覆（淡藍）"},"管路_冷卻水供":{"rgb":[52,150,92],"alpha":1.0,"metallic":0.15,"roughness":0.5,"note":"冷卻水供：綠"},"管路_冷卻水回":{"rgb":[122,186,136],"alpha":1.0,"metallic":0.15,"roughness":0.5,"note":"冷卻水回：淡綠"},"管路_凝結水":{"rgb":[210,196,192],"alpha":1.0,"metallic":0.8,"roughness":0.34,"note":"凝結水：保溫鋁皮＋紅色識別帶"},"管路_助劑":{"rgb":[204,178,128],"alpha":1.0,"metallic":0.05,"roughness":0.5,"note":"助劑：淺棕"},"管路_含氫排氣":{"rgb":[236,128,38],"alpha":1.0,"metallic":0.0,"roughness":0.42,"note":"含氫排氣：FRP 管（橘）"},"管路_壓縮空氣":{"rgb":[112,172,218],"alpha":1.0,"metallic":0.2,"roughness":0.45,"note":"壓縮空氣：淺藍"},"管路_天然氣":{"rgb":[242,178,0],"alpha":1.0,"metallic":0.15,"roughness":0.4,"note":"天然氣：黃"},"管路_廢氣尾氣":{"rgb":[164,168,170],"alpha":1.0,"metallic":0.5,"roughness":0.5,"note":"廢氣尾氣：鍍鋅風管"},"管路_廢水":{"rgb":[84,60,40],"alpha":1.0,"metallic":0.05,"roughness":0.6,"note":"廢水：深棕"},"管路_放流水":{"rgb":[70,150,130],"alpha":1.0,"metallic":0.3,"roughness":0.4,"note":"放流水（3 吋白鐵管）：青綠"},"管路_母液":{"rgb":[168,116,54],"alpha":1.0,"metallic":0.1,"roughness":0.5,"note":"母液：赭棕"},"管路_氮氣":{"rgb":[236,218,96],"alpha":1.0,"metallic":0.15,"roughness":0.45,"note":"氮氣：淡黃"},"管路_法蘭螺栓":{"rgb":[70,72,76],"alpha":1.0,"metallic":0.7,"roughness":0.4,"note":"法蘭／螺栓：深灰"},"管路_泵浦（位置推估）":{"rgb":[98,116,136],"alpha":1.0,"metallic":0.35,"roughness":0.45,"note":"泵浦與推估位置設備（機械灰藍烤漆）"},"管路_洗水":{"rgb":[64,158,160],"alpha":1.0,"metallic":0.1,"roughness":0.45,"note":"洗水：藍綠"},"管路_漿料":{"rgb":[186,146,84],"alpha":1.0,"metallic":0.1,"roughness":0.5,"note":"漿料：土黃棕"},"管路_煙道":{"rgb":[176,178,180],"alpha":1.0,"metallic":0.8,"roughness":0.4,"note":"鍋爐煙道：不鏽鋼外殼（保溫）"},"管路_熱風":{"rgb":[180,180,176],"alpha":1.0,"metallic":0.75,"roughness":0.48,"note":"熱風：高溫保溫鋁皮"},"管路_磷酸":{"rgb":[232,118,28],"alpha":1.0,"metallic":0.05,"roughness":0.45,"note":"磷酸（酸液）：橘"},"管路_管托":{"rgb":[168,172,175],"alpha":1.0,"metallic":0.7,"roughness":0.48,"note":"鍍鋅管托／U 型螺栓"},"管路_粉體輸送":{"rgb":[198,201,206],"alpha":1.0,"metallic":0.9,"roughness":0.24,"note":"粉體輸送：不鏽鋼本色"},"管路_純水":{"rgb":[38,92,196],"alpha":1.0,"metallic":0.1,"roughness":0.4,"note":"純水：藍"},"管路_自來水":{"rgb":[28,102,58],"alpha":1.0,"metallic":0.15,"roughness":0.5,"note":"自來水：深綠"},"管路_蒸汽":{"rgb":[206,209,212],"alpha":1.0,"metallic":0.85,"roughness":0.32,"note":"蒸汽：保溫鋁皮（銀）"},"管路_蒸餾水":{"rgb":[96,152,222],"alpha":1.0,"metallic":0.1,"roughness":0.4,"note":"蒸餾水：淺藍"},"管路_鐵液":{"rgb":[128,64,34],"alpha":1.0,"metallic":0.1,"roughness":0.5,"note":"鐵液：鏽棕"},"管路_閥件":{"rgb":[192,36,30],"alpha":1.0,"metallic":0.3,"roughness":0.42,"note":"閥件：紅"},"管路_雙氧水":{"rgb":[148,78,172],"alpha":1.0,"metallic":0.05,"roughness":0.45,"note":"雙氧水：紫"},"管路_鹼液":{"rgb":[150,132,166],"alpha":1.0,"metallic":0.05,"roughness":0.5,"note":"鹼液：灰紫"},"製程_儲罐":{"rgb":[226,220,200],"alpha":1.0,"metallic":0.0,"roughness":0.48,"note":"PPH 儲罐（米白）"},"製程_化鐵":{"rgb":[92,138,108],"alpha":1.0,"metallic":0.0,"roughness":0.42,"note":"FRP 化鐵釜（綠色膠衣）"},"製程_原料罐":{"rgb":[228,222,202],"alpha":1.0,"metallic":0.0,"roughness":0.5,"note":"PPH 原料罐（米白）"},"製程_合成":{"rgb":[198,201,206],"alpha":1.0,"metallic":0.9,"roughness":0.24,"note":"不鏽鋼 SUS304／316L 2B 面"},"製程_板框":{"rgb":[76,108,150],"alpha":1.0,"metallic":0.3,"roughness":0.45,"note":"板框壓濾機（機架藍色烤漆＋PP 濾板）"},"製程_窯":{"rgb":[150,151,150],"alpha":1.0,"metallic":0.55,"roughness":0.55,"note":"窯外殼耐熱銀漆"},"製程_粉碎":{"rgb":[186,190,195],"alpha":1.0,"metallic":0.85,"roughness":0.34,"note":"不鏽鋼髮絲面"},"製程_輸送":{"rgb":[88,94,102],"alpha":1.0,"metallic":0.4,"roughness":0.5,"note":"輸送機架（深灰烤漆）"},"製程_閃蒸":{"rgb":[186,190,195],"alpha":1.0,"metallic":0.85,"roughness":0.34,"note":"不鏽鋼髮絲面"},"製程_附件":{"rgb":[118,124,132],"alpha":1.0,"metallic":0.55,"roughness":0.45,"note":"馬達、減速機、人孔等附件"},"製程_除磁包裝":{"rgb":[192,196,202],"alpha":1.0,"metallic":0.7,"roughness":0.35,"note":"除磁／包裝機（不鏽鋼＋烤漆）"},"製程_預留":{"rgb":[200,200,200],"alpha":0.3,"metallic":0.0,"roughness":0.8,"note":"預留位置（半透明）"},"鋼構_平台樓梯":{"rgb":[214,176,46],"alpha":1.0,"metallic":0.2,"roughness":0.5,"note":"平台／樓梯（舊版合併圖層）"},"防液堤":{"rgb":[176,174,166],"alpha":1.0,"metallic":0.0,"roughness":0.85,"note":"RC 防液堤（耐酸塗裝）"},"電力_新設":{"rgb":[204,206,198],"alpha":1.0,"metallic":0.2,"roughness":0.45,"note":"配電盤（Munsell 5Y7/1 盤面灰）"},"電力_既有":{"rgb":[176,178,172],"alpha":1.0,"metallic":0.15,"roughness":0.6,"note":"既有配電盤"},"電力_變壓器":{"rgb":[146,152,142],"alpha":1.0,"metallic":0.3,"roughness":0.5,"note":"變壓器（灰綠烤漆）"},"電力_預留":{"rgb":[240,205,175],"alpha":0.3,"metallic":0.0,"roughness":0.8,"note":"預留盤位（半透明）"}},"groups":[{"name":"建物","children":[{"name":"建物外殼","layers":["建物_牆","建物_柱","建物_門窗","建物_玻璃","建物_隔間_鍋爐房"]},{"name":"屋頂","layers":["建物_屋頂_太陽能","建物_屋頂_設備層"]},{"name":"地面／地坪／防液堤","layers":["地面","建物_地坪","防液堤"]},{"name":"天車／平台／樓板","layers":["建物_天車","建物_既有平台","建物_樓板"]}]},{"name":"製程設備","children":[{"name":"化鐵／原料／儲罐","layers":["製程_化鐵","製程_原料罐","製程_儲罐"]},{"name":"合成／板框／閃蒸","layers":["製程_合成","製程_板框","製程_閃蒸"]},{"name":"窯／粉碎／除磁包裝","layers":["製程_窯","製程_粉碎","製程_除磁包裝","製程_輸送"]},{"name":"附件／預留","layers":["製程_附件","製程_預留"]}]},{"name":"廠務設備","children":[{"name":"鍋爐／空壓／純水／氮氣","layers":["廠務_鍋爐","廠務_空壓","廠務_純水","廠務_氮氣"]},{"name":"冷卻水／廢水／廢氣／集塵","layers":["廠務_冷卻水","廠務_廢水處理","廠務_廢氣","廠務_集塵"]},{"name":"天然氣／倉儲／附件","layers":["廠務_天然氣","廠務_倉儲","廠務_附件","既有_保留設施"]}]},{"name":"電力","children":[{"name":"配電盤／變壓器","layers":["電力_新設","電力_變壓器","電力_既有","電力_預留"]}]},{"name":"辦公室實驗室","children":[{"name":"隔間／玻璃","layers":["室內_隔間","室內_玻璃"]},{"name":"家具／櫃體","layers":["室內_辦公家具","室內_櫃體","室內_椅子"]},{"name":"實驗設備","layers":["室內_實驗設備","室內_實驗桌櫃","室內_設備細部"]}]},{"name":"管路","children":[{"name":"蒸汽／凝結水／熱風","layers":["管路_蒸汽","管路_凝結水","管路_熱風"]},{"name":"冷卻水／冰水","layers":["管路_冷卻水供","管路_冷卻水回","管路_冰水"]},{"name":"純水／自來水／洗水","layers":["管路_純水","管路_蒸餾水","管路_自來水","管路_洗水"]},{"name":"壓縮空氣／氮氣／天然氣","layers":["管路_壓縮空氣","管路_乾燥空氣","管路_氮氣","管路_天然氣"]},{"name":"酸鹼藥液（磷酸／雙氧水／助劑／鹼液）","layers":["管路_磷酸","管路_雙氧水","管路_助劑","管路_鹼液"]},{"name":"鐵液／母液／漿料","layers":["管路_鐵液","管路_母液","管路_漿料"]},{"name":"排氣／廢水／放流","layers":["管路_含氫排氣","管路_廢氣尾氣","管路_煙道","管路_廢水","管路_放流水"]},{"name":"粉體輸送","layers":["管路_粉體輸送"]},{"name":"閥件／法蘭／管托／泵浦","layers":["管路_閥件","管路_法蘭螺栓","管路_管托","管路_泵浦（位置推估）"]}]},{"name":"管架","children":[{"name":"柱／梁／斜撐","layers":["管架_柱","管架_梁","管架_斜撐"]},{"name":"底板／螺栓／基礎墩","layers":["管架_底板接頭","管架_螺栓","管架_基礎墩"]}]},{"name":"架台","children":[{"name":"柱／梁／小梁／斜撐","layers":["架台_柱","架台_梁","架台_小梁","架台_斜撐"]},{"name":"格柵板／欄杆／樓梯","layers":["架台_格柵板","架台_欄杆","架台_樓梯","鋼構_平台樓梯"]},{"name":"底板／螺栓／基礎墩","layers":["架台_底板接頭","架台_基座","架台_螺栓","架台_基礎墩"]}]},{"name":"標籤","children":[{"name":"標籤","layers":["標籤","標籤_電力","標籤_管線"]}]}],"presets":[{"name":"全廠","on":["*"],"off":["建物_屋頂_太陽能"]},{"name":"外觀（含屋頂）","on":["*"],"off":[]},{"name":"隱藏建物外殼","on":["*"],"off":["建物外殼","建物_屋頂_太陽能"]},{"name":"只看管路","on":["管路","地面","建物_地坪"],"off":[]},{"name":"只看管架＋架台","on":["管架","架台","地面","建物_地坪"],"off":[]},{"name":"只看製程設備＋管路","on":["製程設備","管路","地面","建物_地坪","防液堤"],"off":[]}]},"ghostLayers":["建物_牆","建物_柱","建物_門窗","建物_玻璃","建物_屋頂_太陽能","建物_屋頂_設備層","建物_隔間_鍋爐房","室內_隔間","既有_保留設施","廠務_冷卻水"],"hideLayers":["建物_天車"],"edgeLayers":"^(製程_|廠務_|電力_|防液堤|既有_)","minCamY":18,"capR":6,"bg":"#eceff1","groundColor":"#dddbd3","exposure":1.0,"panels":[{"id":"RIO-01","p":[-24.0,0,-60.78],"kind":"rio","exist":false},{"id":"RIO-02","p":[-17.5,0,-39.0],"kind":"rio","exist":false},{"id":"SIS-01","p":[-14.8,0,-39.0],"kind":"sis","exist":false},{"id":"RIO-03","p":[-48.0,0,-10.0],"kind":"rio","exist":false},{"id":"RIO-04","p":[-17.0,0,-23.3],"kind":"rio","exist":false},{"id":"RIO-05","p":[-16.8,0,17.65],"kind":"rio","exist":false},{"id":"RIO-06","p":[-33.0,0,-1.9],"kind":"rio","exist":false},{"id":"RIO-07","p":[-58.5,0,12.36],"kind":"rio","exist":false},{"id":"SIS-02","p":[-55.8,0,12.36],"kind":"sis","exist":false},{"id":"RIO-08","p":[-75.75,0,-12.5],"kind":"rio","exist":false},{"id":"RIO-09","p":[-87.99,0,-12.5],"kind":"rio","exist":false},{"id":"RIO-10","p":[-85.8,0,12.4],"kind":"rio","exist":false},{"id":"SW-3","p":[-89.0,4.8,-21.5],"kind":"gw","exist":false},{"id":"IGW-ENV-01","p":[9.5,0,3.8],"kind":"gw","exist":false},{"id":"IGW-ENV-02","p":[6.0,4.2,42.0],"kind":"gw","exist":false},{"id":"MP-U2","p":[11.0,0,28.2],"kind":"gw","exist":false},{"id":"IGW-ENV-03","p":[17.0,0,-57.0],"kind":"gw","exist":false},{"id":"HS-901","p":[14.4,0,-58.85],"kind":"sis","exist":true},{"id":"U5-IO","p":[13.4,0,46.6],"kind":"rio","exist":false},{"id":"IGW-PWR","p":[6.0,0,-6.4],"kind":"gw","exist":false},{"id":"core","p":[6.0,0,-9.5],"kind":"core","exist":false},{"id":"ctrl","p":[34.0,0,-2.0],"kind":"ctrl","exist":false}],"video":"video.html","source":{"glb":"台南柳營廠_3D規劃模型_管路版_20261004.glb"}}</script>
+<script type="application/json" id="deck-audio">{"c00": 1, "c01": 1, "c02": 1, "c03": 1, "c04": 1, "c05": 1, "c06": 1, "c07": 1, "c08": 1, "c09": 1, "c10": 1, "c11": 1, "c12": 1, "c13": 1, "c14": 1, "c15": 1, "c16": 1, "c17": 1, "c18": 1, "c19": 1, "c20": 1, "c21": 1, "c22": 1, "c23": 1, "bgm": 1}</script>
+<script type="module">
+const $ = id => document.getElementById(id);
+const loadMsg = t => { $("load").textContent = t; };
+const THREE = await import("three");
+const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
+const { DRACOLoader } = await import("three/addons/loaders/DRACOLoader.js");
+const GLB_VER = "202610121403", GLB_SIZE = 2535056;
+const D = JSON.parse($("deck-data").textContent);
+const AUD = JSON.parse($("deck-audio").textContent || "{}");
+const REC = new URLSearchParams(location.search).has("rec");
+if (REC) document.body.classList.add("rec");
+const CH = D.chapters, N = CH.length;
+const lerp = (a, b, k) => a + (b - a) * k, clamp = (v, a, b) => Math.min(b, Math.max(a, v)), clamp01 = v => clamp(v, 0, 1);
+const ease = k => { k = clamp01(k); return k * k * k * (k * (k * 6 - 15) + 10); };
+const DEG = Math.PI / 180;
+
+// ───────── 渲染器、場景、燈光（淺色資訊圖表風格）
+const host = $("gl");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: REC, powerPreference: "high-performance" });
+renderer.setPixelRatio(REC ? 1 : Math.min(devicePixelRatio, 1.5));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = D.exposure || 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // 陰影只在注視點或範圍改變時重算（環繞中不重算）
+host.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const BG = new THREE.Color(D.bg || "#eceff1");
+scene.background = BG; scene.fog = new THREE.Fog(BG, 420, 1500);
+const cam = new THREE.PerspectiveCamera(35, 1, 0.5, 3000);
+{ // 環境反射：簡單天光漸層（自製，離線可用）
+  const es = new THREE.Scene();
+  const m = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false,
+    vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "varying vec3 vP; void main(){ float h = normalize(vP).y; vec3 c = mix(vec3(0.50,0.50,0.48), vec3(1.0,1.0,1.03), smoothstep(-0.25, 0.55, h)); c += vec3(0.6,0.55,0.45) * pow(max(dot(normalize(vP), normalize(vec3(0.6,0.7,0.35))), 0.0), 24.0); gl_FragColor = vec4(c, 1.0); }" });
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(50, 48, 24), m));
+  const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(es, 0.02).texture; pm.dispose();
+}
+scene.add(new THREE.HemisphereLight(0xf4f7ff, 0xb9b3a2, 0.85));
+const sun = new THREE.DirectionalLight(0xfff4e6, 2.3); scene.add(sun); scene.add(sun.target);
+const SUN_DIR = new THREE.Vector3(0.52, 0.78, 0.35).normalize();
+sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04; sun.shadow.radius = 2.5;
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshStandardMaterial({ color: new THREE.Color(D.groundColor || "#dedcd5"), roughness: 1, metalness: 0 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.32; ground.receiveShadow = true; scene.add(ground);
+
+// ───────── 隱藏建物的半透明（只在本區範圍與鏡頭視線附近；其他地方照常）
+const GU = { uG0: { value: new THREE.Vector4(0, 0, 0, 0) }, uG1: { value: new THREE.Vector4(0, 0, 0, 0) }, uA: { value: new THREE.Vector2(0, 0) },
+  uCapA: { value: new THREE.Vector3() }, uCapB: { value: new THREE.Vector3() }, uCap: { value: new THREE.Vector2(6, 0) }, uGlob: { value: 0 },
+  uCut: { value: new THREE.Vector4(0, 0, 0, 0) }, uCutY: { value: new THREE.Vector2(0, 0) } };
+const DOOR = ((D.actors || {}).doors || [])[0];
+if (DOOR) { GU.uCut.value.set(DOOR.r[0], DOOR.r[2], DOOR.r[1], DOOR.r[3]); GU.uCutY.value.set(DOOR.z[0] - 0.1, DOOR.z[1]); }
+function ghostable(m, L) {
+  m.userData.uOn = { value: 1 }; m.userData.uCutOn = { value: DOOR && DOOR.layers.includes(L) ? 1 : 0 };
+  m.transparent = true; m.depthWrite = true;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, GU, { uOn: m.userData.uOn, uCutOn: m.userData.uCutOn });
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+varying vec3 vWP; uniform vec4 uG0; uniform vec4 uG1; uniform vec2 uA; uniform vec3 uCapA; uniform vec3 uCapB; uniform vec2 uCap; uniform float uGlob; uniform float uOn; uniform vec4 uCut; uniform vec2 uCutY; uniform float uCutOn;
+float gRect(vec4 r){ vec2 d = max(vec2(r.x - vWP.x, vWP.x - r.z), vec2(r.y - vWP.z, vWP.z - r.w)); float e = max(max(d.x, d.y), 0.0); return 1.0 - smoothstep(0.0, 3.0, e); }
+float gCap(){ vec3 ab = uCapB - uCapA; float t = clamp(dot(vWP - uCapA, ab) / max(dot(ab, ab), 1e-4), 0.0, 1.0); float d = length(vWP - (uCapA + t * ab)); return 1.0 - smoothstep(uCap.x, uCap.x + 3.0, d); }`)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+{ if (uCutOn > 0.5 && vWP.x > uCut.x && vWP.x < uCut.z && vWP.z > uCut.y && vWP.z < uCut.w && vWP.y > uCutY.x && vWP.y < uCutY.y) discard;
+  float f = max(max(uA.x * gRect(uG0), uA.y * gRect(uG1)), max(uCap.y * gCap(), uGlob)) * uOn; diffuseColor.a *= mix(1.0, 0.10, f); }`);
+  };
+  m.customProgramCacheKey = () => "ghost_" + L;
+}
+
+// ───────── 材質
+function makeMat(L) {
+  const p = Object.assign({ rgb: [170, 170, 170], alpha: 1, metallic: 0.1, roughness: 0.7 }, (D.palette.materials || {})[L] || {});
+  const m = new THREE.MeshStandardMaterial({
+    color: new THREE.Color().setRGB(p.rgb[0] / 255, p.rgb[1] / 255, p.rgb[2] / 255, THREE.SRGBColorSpace),
+    metalness: p.metallic * 0.55, roughness: Math.max(0.3, p.roughness), side: THREE.DoubleSide,
+    transparent: p.alpha < 1, opacity: p.alpha, depthWrite: p.alpha >= 0.6, envMapIntensity: 0.55 + 0.5 * p.metallic });
+  if (L === "地面" || L === "建物_地坪") { m.polygonOffset = true; m.polygonOffsetFactor = 2; m.polygonOffsetUnits = 2; }
+  if (D.ghostLayers.includes(L)) ghostable(m, L);
+  m.name = L; return m;
+}
+// 法線：相鄰面夾角 < 40° 取平滑（圓管、圓槽），其餘保持銳角（箱體、型鋼）
+function creased(pos, I, deg = 40) {
+  const nT = I.length / 3, nV = pos.length / 3;
+  const fn = new Float32Array(nT * 3);
+  for (let t = 0; t < nT; t++) {
+    const a = I[3 * t] * 3, b = I[3 * t + 1] * 3, c = I[3 * t + 2] * 3;
+    const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2];
+    const vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1;
+    fn[3 * t] = nx / l; fn[3 * t + 1] = ny / l; fn[3 * t + 2] = nz / l;
+  }
+  const st = new Uint32Array(nV + 1); for (let i = 0; i < I.length; i++) st[I[i] + 1]++;
+  for (let v = 0; v < nV; v++) st[v + 1] += st[v];
+  const fill = st.slice(0, nV), lst = new Uint32Array(I.length);
+  for (let i = 0; i < I.length; i++) lst[fill[I[i]]++] = (i / 3) | 0;
+  const cosT = Math.cos(deg * DEG);
+  const head = new Int32Array(nV).fill(-1), nxt = new Int32Array(nT * 3), oN = new Float32Array(nT * 9), src = new Uint32Array(nT * 3), oI = new Uint32Array(nT * 3);
+  let nO = 0;
+  for (let t = 0; t < nT; t++) {
+    const fx = fn[3 * t], fy = fn[3 * t + 1], fz = fn[3 * t + 2];
+    for (let k = 0; k < 3; k++) {
+      const v = I[3 * t + k], o = 9 * t + 3 * k;
+      let sx = 0, sy = 0, sz = 0;
+      for (let j = st[v]; j < st[v + 1]; j++) {
+        const f = lst[j]; const gx = fn[3 * f], gy = fn[3 * f + 1], gz = fn[3 * f + 2];
+        const d = fx * gx + fy * gy + fz * gz;
+        if (d >= cosT) { sx += gx; sy += gy; sz += gz; } else if (-d >= cosT) { sx -= gx; sy -= gy; sz -= gz; }
+      }
+      const l = Math.hypot(sx, sy, sz);
+      if (l > 1e-6) { oN[o] = sx / l; oN[o + 1] = sy / l; oN[o + 2] = sz / l; } else { oN[o] = fx; oN[o + 1] = fy; oN[o + 2] = fz; }
+      let j = head[v], hit = -1;
+      while (j >= 0) { const q = 3 * src[j]; if (Math.abs(oN[q] - oN[o]) < 1e-3 && Math.abs(oN[q + 1] - oN[o + 1]) < 1e-3 && Math.abs(oN[q + 2] - oN[o + 2]) < 1e-3) { hit = j; break; } j = nxt[j]; }
+      if (hit < 0) { hit = nO++; src[hit] = 3 * t + k; nxt[hit] = head[v]; head[v] = hit; }
+      oI[3 * t + k] = hit;
+    }
+  }
+  const fP = new Float32Array(nO * 3), fN = new Float32Array(nO * 3);
+  for (let i = 0; i < nO; i++) { const s = src[i], v = I[s], o = 3 * s;
+    fP[3 * i] = pos[3 * v]; fP[3 * i + 1] = pos[3 * v + 1]; fP[3 * i + 2] = pos[3 * v + 2]; fN[3 * i] = oN[o]; fN[3 * i + 1] = oN[o + 1]; fN[3 * i + 2] = oN[o + 2]; }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(fP, 3)); g.setAttribute("normal", new THREE.BufferAttribute(fN, 3));
+  g.setIndex(new THREE.BufferAttribute(nO > 65535 ? oI : Uint16Array.from(oI), 1));
+  g.computeBoundingBox(); g.computeBoundingSphere(); return g;
+}
+// GLB：位置＋索引，一個圖層一個網格（材質名＝圖層名）
+function parseGLB(ab) {
+  const dv = new DataView(ab); if (dv.getUint32(0, true) !== 0x46546C67) throw new Error("不是 GLB");
+  const jl = dv.getUint32(12, true); const js = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 20, jl))); const bo = 20 + jl + 8;
+  const view = (acc, size, Ctor) => { const bv = js.bufferViews[acc.bufferView]; const o = bo + (bv.byteOffset || 0) + (acc.byteOffset || 0); return new Ctor(ab.slice(o, o + acc.count * size)); };
+  const out = [];
+  for (const nd of js.nodes) {
+    if (nd.mesh === undefined) continue;
+    for (const pr of js.meshes[nd.mesh].primitives) {
+      const pa = js.accessors[pr.attributes.POSITION]; const pos = view(pa, 12, Float32Array);
+      let idx;
+      if (pr.indices !== undefined) { const ia = js.accessors[pr.indices]; idx = ia.componentType === 5125 ? view(ia, 4, Uint32Array) : ia.componentType === 5123 ? view(ia, 2, Uint16Array) : view(ia, 1, Uint8Array); }
+      else idx = Uint32Array.from({ length: pa.count }, (_, i) => i);
+      const L = (js.materials && pr.material !== undefined && js.materials[pr.material].name) || nd.name;
+      out.push({ L, pos, idx });
+    }
+  }
+  return out;
+}
+
+// ───────── 分區色塊（本區範圍）
+const FOOT = {};
+function footprint(f) {
+  const g = new THREE.Group(); const col = new THREE.Color(f.color);
+  const [x0, x1, z0, z1] = f.r, y = f.y + 0.06;
+  const fill = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  fill.rotation.x = -Math.PI / 2; fill.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); fill.renderOrder = 1; g.add(fill);
+  const w = Math.max(0.25, Math.min(0.6, (x1 - x0 + z1 - z0) / 160));
+  const bm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 });
+  for (const [cx, cz, sx, sz] of [[(x0 + x1) / 2, z0, x1 - x0 + w, w], [(x0 + x1) / 2, z1, x1 - x0 + w, w], [x0, (z0 + z1) / 2, w, z1 - z0], [x1, (z0 + z1) / 2, w, z1 - z0]]) {
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(sx, sz), bm); b.rotation.x = -Math.PI / 2; b.position.set(cx, y + 0.01, cz); b.renderOrder = 2; g.add(b);
+  }
+  g.userData.set = a => { fill.material.opacity = 0.30 * a; bm.opacity = 0.95 * a; g.visible = a > 0.003; };
+  g.userData.set(0); scene.add(g); return g;
+}
+
+// ───────── 引線標註（HTML 卡片＋SVG 引線）
+const tagsEl = $("tags"), svg = $("lines");
+const TAGS = CH.map((ch, i) => (ch.callouts || []).map((c, k) => {
+  const el = document.createElement("div"); el.className = "tag" + (c.zone ? " zone" : "");
+  el.style.setProperty("--c", c.color || ch.color);
+  el.innerHTML = `<b>${c.t}</b>` + (c.s ? `<s>${c.s}</s>` : ""); el.style.opacity = 0; tagsEl.appendChild(el);
+  const ln = document.createElementNS("http://www.w3.org/2000/svg", "line"); ln.setAttribute("stroke", c.color || ch.color); ln.setAttribute("stroke-width", "1.6"); svg.appendChild(ln);
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle"); dot.setAttribute("r", (c.zone ? 4 : 5.5) * (innerWidth < 640 ? 0.65 : 1)); dot.setAttribute("fill", c.color || ch.color); dot.setAttribute("stroke", "#fff"); dot.setAttribute("stroke-width", "2"); svg.appendChild(dot);
+  return { el, ln, dot, p: new THREE.Vector3(...c.p), zone: !!c.zone, box: c.box || [0.3, 0.3, 0.6], win: c.win || null, dyn: c.dyn || null, w: 0, h: 0, x: null, y: null, a: 0, k };
+}));
+const _v = new THREE.Vector3();
+function layoutTags(list, W, H, dt, obst = []) {
+  const placed = obst.slice(); const k = 1 - Math.exp(-dt * 10);
+  for (const t of list) {
+    if (t.a <= 0.002) { t.el.style.opacity = 0; t.ln.setAttribute("opacity", 0); t.dot.setAttribute("opacity", 0); t.x = null; continue; }
+    _v.copy(t.p).project(cam);
+    const ax = (_v.x + 1) / 2 * W, ay = (1 - _v.y) / 2 * H;
+    const behind = _v.z > 1 || _v.z < -1;
+    const edge = clamp01(Math.min(ax + 40, W + 40 - ax, ay + 40, H + 40 - ay) / 80);
+    const a = behind ? 0 : t.a * edge;
+    if (!t.w) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
+    const w = t.w, h = t.h, lift = (t.zone ? 26 : 58) * (W < 640 ? 0.5 : 1);   // 手機引線縮短
+    const coll = (x, y) => { for (const q of placed) if (x < q.x + q.w + 8 && x + w + 8 > q.x && y < q.y + q.h + 6 && y + h + 6 > q.y) return q; return null; };
+    // 候選位置：標註點正上方，往上一層層、左右錯開；放不下再試下方。取最近的空位（左右錯開比往上疊優先一點）
+    let x = clamp(ax - w / 2, 8, W - w - 8), y = ay - lift - h, best = null;
+    for (const dir of [-1, 1]) {
+      for (let lv = 0; lv < 6 && !best; lv++) {
+        const yy = dir < 0 ? ay - lift - h - lv * (h + 8) : ay + 30 + lv * (h + 8);
+        if (yy < 8 || yy > H - h - 8) continue;
+        for (const f of [0, -0.65, 0.65, -1.3, 1.3]) {
+          const xx = clamp(ax - w / 2 + f * (w + 12), 8, W - w - 8);
+          if (!coll(xx, yy)) { const c = lv * (h + 8) + Math.abs(xx - (ax - w / 2)) * 0.6; if (!best || c < best.c) best = { x: xx, y: yy, c }; }
+        }
+        if (best) break;
+      }
+      if (best) break;
+    }
+    if (t.off) {                                  // 上一格的相對位置還空著、且差不多好，就沿用（避免標籤來回跳）
+      const xx = clamp(ax + t.off[0], 8, W - w - 8), yy = clamp(ay + t.off[1], 8, H - h - 8);
+      if (!coll(xx, yy)) { const c = Math.max(0, -(t.off[1] + lift + h)) + Math.abs(xx - (ax - w / 2)) * 0.6; if (!best || c <= best.c + 60) best = { x: xx, y: yy, c }; }
+    }
+    if (best) { x = best.x; y = best.y; } else y = clamp(y, 8, H - h - 8);
+    t.off = [x - ax, y - ay];
+    t.x = t.x === null || a < 0.05 ? x : lerp(t.x, x, k); t.y = t.y === null || a < 0.05 ? y : lerp(t.y, y, k);
+    placed.push({ x: t.x, y: t.y, w, h });
+    t.el.style.opacity = a; t.el.style.transform = `translate(${t.x.toFixed(1)}px,${t.y.toFixed(1)}px)`;
+    const bx = clamp(ax, t.x + 6, t.x + w - 6), by = ay < t.y ? t.y : (ay > t.y + h ? t.y + h : t.y + h);
+    t.ln.setAttribute("x1", ax.toFixed(1)); t.ln.setAttribute("y1", ay.toFixed(1)); t.ln.setAttribute("x2", bx.toFixed(1)); t.ln.setAttribute("y2", by.toFixed(1));
+    t.ln.setAttribute("opacity", a); t.dot.setAttribute("cx", ax.toFixed(1)); t.dot.setAttribute("cy", ay.toFixed(1)); t.dot.setAttribute("opacity", a);
+  }
+}
+
+// ───────── 資訊欄
+const keyAnim = [];
+function fmtNum(v, dec) { return v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+function setPanel(i) {
+  const ch = CH[i];
+  document.documentElement.style.setProperty("--acc", ch.color);
+  $("no").innerHTML = ch.no + `<small>／${CH[N - 1].no}</small>`;
+  $("ttl").textContent = ch.title; $("sub").textContent = ch.sub; $("desc").textContent = ch.desc;
+  keyAnim.length = 0;
+  $("keys").innerHTML = "";
+  for (const [v, u, l] of ch.keys || []) {
+    const d = document.createElement("div"); d.className = "key";
+    d.innerHTML = `<div><span class="v"></span><span class="u">${u}</span></div><div class="l">${l}</div>`;
+    const ve = d.querySelector(".v"); ve.textContent = v;
+    const m = /^([+<>]?)([\d,]+(?:\.(\d+))?)$/.exec(v);
+    if (m) keyAnim.push({ el: ve, pre: m[1], n: parseFloat(m[2].replace(/,/g, "")), dec: m[3] ? m[3].length : 0, comma: m[2].includes(",") });
+    $("keys").appendChild(d);
+  }
+  document.body.classList.toggle("pgch", !!ch.page);
+  $("keys").classList.toggle("k3", (ch.keys || []).length === 3);
+  const IOC = { AI: ["AI", "#2f8fff"], AO: ["AO", "#ff9f1a"], DI: ["DI", "#1fb36b"], DO: ["DO", "#1fb36b"], MB: ["Modbus TCP", "#8a63ff"], OPC: ["OPC UA", "#8a63ff"] };
+  $("io").innerHTML = ch.io ? Object.entries(IOC).filter(([k]) => ch.io[k] || ["AI", "AO", "DI", "DO"].includes(k)).map(([k, [n, c]]) => `<span style="--k:${c}" class="${ch.io[k] ? "" : "z"}">${n}<b>${ch.io[k]}</b></span>`).join("")
+    + (ch.io.SIS ? `<span style="--k:#e5383b">其中 SIS<b>${ch.io.SIS}</b></span>` : "") : "";
+  $("dtitle").textContent = ch.design ? "設計重點" : "";
+  $("design").innerHTML = (ch.design || []).map(d => `<li>${d}</li>`).join("");
+  const lg = $("legend"); lg.innerHTML = "";
+  for (const [kind, col, txt] of ch.legend || []) {
+    const s = document.createElement("span");
+    const ex = arguments.length, rr = ch.legend.find(q => q[2] === txt);
+    s.innerHTML = kind === "box" ? `<i class="box" style="background:${col}"></i>${txt}` : kind === "dot" ? `<i class="dot" style="background:${col};color:${col}"></i>${txt}` : kind === "ghost" ? `<i class="ghost"></i>${txt}`
+      : kind === "flow" ? `<i class="flow" style="background:${col}"></i>${txt}` : kind === "role" ? `<i class="role" style="background:${col};border-top-color:${rr && rr[3] || "#fff"}"></i>${txt}` : `<i style="background:${col};opacity:.75"></i>${txt}`;
+    lg.appendChild(s);
+  }
+  [...$("bar").children].forEach((b, j) => { b.classList.toggle("on", j === i); b.classList.toggle("done", j < i); b.style.setProperty("--c", CH[j].color); });
+  const ab = $("bar").children[i]; if (ab && !REC) ab.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+function animPanel(tau) {
+  const a = ease(tau / 0.7);
+  $("pin").style.opacity = a; $("pin").style.transform = `translateY(${((1 - a) * 18).toFixed(1)}px)`;
+  const kk = ease((tau - 0.5) / 1.3);
+  for (const k of keyAnim) { const v = k.n * kk; k.el.textContent = k.pre + (k.comma || k.n >= 1000 ? fmtNum(v, k.dec) : v.toFixed(k.dec)); }
+}
+for (let i = 0; i < N; i++) {
+  const b = document.createElement("button"); b.innerHTML = `<em>${CH[i].no}</em><span>${CH[i].short}</span><i></i>`;
+  b.onclick = () => { goto(i, true); }; $("bar").appendChild(b);
+}
+
+const T0 = [0]; for (let i = 1; i <= N; i++) T0[i] = T0[i - 1] + CH[i - 1].D;
+let ACT = null;
+// ───────── 鏡頭：每章注視點、距離、俯角；環繞一圈 T 秒
+const V3 = a => new THREE.Vector3(a[0], a[1], a[2]);
+CH.forEach(ch => { ch.cam.cv = V3(ch.cam.c); if (ch.cam.move) ch.cam.move.cv = V3(ch.cam.move.c); });
+function orbitPose(i, tau, az0) {
+  const ch = CH[i], c = ch.cam; const om = 360 / c.T;
+  let cv = c.cv.clone(), R = c.R, el = c.el;
+  if (c.move) { const k = ease((tau / ch.D - c.move.k0) / (c.move.k1 - c.move.k0)); cv.lerp(c.move.cv, k); R = lerp(R, c.move.R, k); el = lerp(el, c.move.el, k); }
+  if (c.follow && ACT) { const vp = ACT.vehPos(c.follow.veh, T0[i] + tau); const k = tau / ch.D;
+    if (vp) { const w = ease((k - c.follow.k0) / 0.07) * ease((c.follow.k1 - k) / 0.07); cv.lerp(vp, w); } }
+  return { c: cv, az: az0 + om * tau, el, R };
+}
+const AZ0 = [CH[0].cam.az || -40];
+for (let i = 1; i < N; i++) AZ0[i] = CH[i].cam.az0 !== undefined ? CH[i].cam.az0 : AZ0[i - 1] + 360 / CH[i - 1].cam.T * CH[i - 1].D;   // az0：本章指定起始方位（只轉半圈、避開遮擋時用）
+const user = { az: 0, el: 0, zoom: 1 };
+function poseCam(p) {
+  const asp = cam.aspect; let R = p.R * user.zoom * Math.pow(Math.max(1, 1.25 / asp), 0.75);
+  let el = clamp(p.el + user.el, 8, 86);
+  const minY = D.minCamY || 18;
+  if (p.c.y + R * Math.sin(el * DEG) < minY) el = Math.asin(clamp((minY - p.c.y) / R, -1, 1)) / DEG;
+  const az = (p.az + user.az) * DEG;
+  cam.position.set(p.c.x + R * Math.cos(el * DEG) * Math.sin(az), p.c.y + R * Math.sin(el * DEG), p.c.z + R * Math.cos(el * DEG) * Math.cos(az));
+  cam.lookAt(p.c); cam.near = clamp(R * 0.01, 0.3, 4); cam.far = Math.max(2500, R * 8); cam.updateProjectionMatrix();
+  return R;
+}
+function blendPose(a, b, s, i) {
+  const d = a.c.distanceTo(b.c);
+  const daz = ((b.az - a.az) % 360 + 540) % 360 - 180;   // 取最短轉向
+  return { c: a.c.clone().lerp(b.c, s), az: a.az + daz * s, el: lerp(a.el, b.el, s), R: lerp(a.R, b.R, s) + d * 0.22 * Math.sin(Math.PI * s) };
+}
+
+// ───────── 2D 架構頁（HTML）：元素依 data-a 秒數淡入；data-links 兩方塊之間畫線＋流動光點
+const PG = { i: -1, root: null, items: [], links: [], svg: null };
+function pageEnter(i) {
+  const ch = CH[i]; if (!ch.page) return;
+  const host = $("page"); host.innerHTML = ch.page; host.style.display = "block";
+  PG.i = i; PG.root = host.firstElementChild; PG.svg = PG.root.querySelector("svg.pl");
+  PG.items = [...PG.root.querySelectorAll("[data-a]")].map(el => ({ el, a: parseFloat(el.dataset.a) }));
+  let L = []; try { L = JSON.parse(PG.root.dataset.links || "[]"); } catch (e) {}
+  PG.svg.innerHTML = "";
+  PG.links = L.map(([f, t, c, v, n]) => {
+    const A = PG.root.querySelector("#" + CSS.escape(f)), B = PG.root.querySelector("#" + CSS.escape(t)); if (!A || !B) return null;
+    const ln = document.createElementNS("http://www.w3.org/2000/svg", "line"); ln.setAttribute("stroke", c); ln.setAttribute("stroke-width", "2"); ln.setAttribute("stroke-dasharray", "5 5"); PG.svg.appendChild(ln);
+    const ds = []; for (let k = 0; k < n; k++) { const d = document.createElementNS("http://www.w3.org/2000/svg", "circle"); d.setAttribute("r", "5"); d.setAttribute("fill", c); d.setAttribute("stroke", "#fff"); d.setAttribute("stroke-width", "1.5"); PG.svg.appendChild(d); ds.push(d); }
+    return { A, B, ln, ds, v, n };
+  }).filter(Boolean);
+}
+function pageUpdate(i, tau) {
+  const host = $("page"), ch = CH[i];
+  const prevPage = ses.prev !== i && CH[ses.prev].page;
+  let op = 0;
+  if (ch.page) { if (PG.i !== i) pageEnter(i); op = ease(tau / 0.5); }
+  else if (prevPage && PG.i === ses.prev) op = 1 - ease(tau / 0.5);
+  host.style.opacity = op; host.style.display = op > 0.002 ? "block" : "none";
+  if (op <= 0.002 || !PG.root) return;
+  const t = ch.page ? tau : 99;
+  for (const it of PG.items) { const k = ease((t - it.a) / 0.45); it.el.style.opacity = k; it.el.style.transform = k < 1 ? `translateY(${((1 - k) * 10).toFixed(1)}px)` : ""; }
+  const R0 = PG.root.getBoundingClientRect();
+  for (const l of PG.links) {
+    const a = l.A.getBoundingClientRect(), b = l.B.getBoundingClientRect();
+    const oa = parseFloat(getComputedStyle(l.A).opacity) * parseFloat(getComputedStyle(l.B).opacity);
+    const ax = a.left + a.width / 2 - R0.left, ay = a.top + a.height / 2 - R0.top, bx = b.left + b.width / 2 - R0.left, by = b.top + b.height / 2 - R0.top;
+    l.ln.setAttribute("x1", ax); l.ln.setAttribute("y1", ay); l.ln.setAttribute("x2", bx); l.ln.setAttribute("y2", by); l.ln.setAttribute("opacity", 0.5 * oa);
+    l.ds.forEach((d, k) => { const f = ((t * l.v) + k / l.n) % 1; d.setAttribute("cx", ax + (bx - ax) * f); d.setAttribute("cy", ay + (by - ay) * f); d.setAttribute("opacity", oa); });
+  }
+}
+// ───────── 章節狀態
+let ses = null, lastPose = null, auto = false, voiceOn = true, subOn = true, shadowKey = "";
+const audio = new Audio(); let audTimer = 0;
+// 手機瀏覽器只准「點按當下」開始出聲：按自動播放時先用靜音播一下把旁白喇叭解鎖；萬一仍被擋，提示輕觸畫面再補播
+function voiceUnlock(aid) {
+  if (!aid || !AUD[aid]) return;
+  audio.dataset.unlock = "1"; audio.muted = true; audio.src = AUDSRC(aid);
+  const p = audio.play(); if (p) p.then(() => { if (audio.dataset.unlock) { audio.pause(); audio.dataset.unlock = ""; } audio.muted = false; }).catch(() => { audio.dataset.unlock = ""; audio.muted = false; });
+}
+function voiceBlocked(e) {
+  if (!e || e.name !== "NotAllowedError") return;
+  const tip = document.createElement("div"); tip.textContent = "輕觸畫面開啟旁白";
+  tip.style.cssText = "position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:99;background:rgba(24,30,38,.85);color:#fff;padding:10px 18px;border-radius:20px;font-size:16px";
+  document.body.appendChild(tip);
+  const go = () => { tip.remove(); audio.muted = false; audio.play().catch(() => {}); removeEventListener("pointerdown", go, true); };
+  addEventListener("pointerdown", go, true);
+}
+// 背景音樂：自動播放時循環；旁白時壓低。音量用 Web Audio 增益控制（iPhone 不吃 audio.volume）
+const AUDSRC = k => "audio/" + k + ".mp3?v=" + GLB_VER;
+const BGM = { el: new Audio(), on: !!AUD.bgm && !REC, ctx: null, g: null, hi: 0.32, lo: 0.10 };
+BGM.el.loop = true;
+function bgmGain(v, sec = 0.6) { if (!BGM.g) return; const t = BGM.ctx.currentTime; BGM.g.gain.cancelScheduledValues(t); BGM.g.gain.setValueAtTime(BGM.g.gain.value, t); BGM.g.gain.linearRampToValueAtTime(v, t + sec); }
+function bgmPlay(play) {
+  if (!BGM.on) return;
+  if (!play) { bgmGain(0, 0.5); setTimeout(() => { if (!auto) BGM.el.pause(); }, 550); return; }
+  if (!BGM.ctx) { try { const AC = window.AudioContext || window.webkitAudioContext; BGM.ctx = new AC(); BGM.g = BGM.ctx.createGain(); BGM.g.gain.value = 0; BGM.ctx.createMediaElementSource(BGM.el).connect(BGM.g); BGM.g.connect(BGM.ctx.destination); } catch (e) { BGM.ctx = null; BGM.g = null; BGM.el.volume = BGM.hi; } }
+  if (BGM.ctx && BGM.ctx.state === "suspended") BGM.ctx.resume();
+  if (!BGM.el.src) BGM.el.src = AUDSRC("bgm");
+  BGM.el.play().catch(() => {}); bgmGain(audio.paused ? BGM.hi : BGM.lo, 1.2);
+}
+audio.addEventListener("play", () => bgmGain(BGM.lo, 0.4));
+audio.addEventListener("pause", () => { if (auto) bgmGain(BGM.hi, 1.0); });
+audio.addEventListener("ended", () => { if (auto) bgmGain(BGM.hi, 1.0); });
+function flyTime(a, b) { return clamp(2.6 + (a.c.distanceTo(b.c) + Math.abs(a.R - b.R) * 0.5 + (a.R + b.R) / 2 * Math.abs(a.el - b.el) * DEG * 0.5) / 110, 2.6, 5.0); }
+function enter(i, from, az0) {
+  const prev = ses ? ses.i : (i > 0 ? i - 1 : 0);
+  const to0 = orbitPose(i, 0, az0);
+  ses = { i, prev, from, az0, om0: 360 / CH[prev].cam.T, F: from ? flyTime(from, to0) : 0.01, t0: performance.now() };
+  for (let j = 0; j < N; j++) if (j !== i && j !== prev) for (const t of TAGS[j]) { t.a = 0; t.x = null; t.off = null; t.el.style.opacity = 0; t.ln.setAttribute("opacity", 0); t.dot.setAttribute("opacity", 0); }
+  setPanel(i);
+}
+function goto(i, manual) {
+  i = clamp(i, 0, N - 1);
+  user.az = 0; user.el = 0; user.zoom = 1;
+  const from = lastPose ? { ...lastPose, c: lastPose.c.clone() } : null;
+  enter(i, from, CH[i].cam.az0 !== undefined ? CH[i].cam.az0 : (from ? from.az : AZ0[i]));
+  clearTimeout(audTimer); audio.pause();
+  if (auto && voiceOn && CH[i].aid && AUD[CH[i].aid]) { audTimer = setTimeout(() => { audio.dataset.unlock = ""; audio.muted = false; const u = AUDSRC(CH[i].aid); if (audio.src.endsWith(u)) audio.currentTime = 0; else audio.src = u; audio.play().catch(voiceBlocked); }, CH[i].lead * 1000); }
+}
+// ───────── 每格更新（互動與錄影共用）
+const ghostR = i => CH[i].ghostRect || [0, 0, 0, 0];
+function update(tau, dt) {
+  const i = ses.i, ch = CH[i], pv = CH[ses.prev];
+  const s = ses.from ? ease(tau / ses.F) : 1;
+  const to = orbitPose(i, tau, ses.az0);
+  const pose = ses.from && s < 1 ? blendPose({ ...ses.from, az: ses.from.az + ses.om0 * tau }, to, s, i) : to;   // 起點沿上一章的環繞速度繼續轉，換章不頓
+  lastPose = pose;
+  const R = poseCam(pose);
+  // 建物半透明：上一章淡出、本章淡入；鏡頭視線膠囊
+  GU.uG0.value.set(...ghostR(ses.prev)); GU.uG1.value.set(...ghostR(i));
+  GU.uA.value.set(ses.prev !== i && pv.ghost ? 1 - s : 0, ch.ghost ? s : 0);
+  GU.uCapA.value.copy(pose.c); GU.uCapB.value.copy(cam.position); GU.uCap.value.set(D.capR || 6, (ch.ghost && !ch.ghostGlobal ? s : 0) + (ses.prev !== i && pv.ghost && !pv.ghostGlobal ? 1 - s : 0));
+  GU.uGlob.value = lerp(ses.prev !== i ? (pv.ghostGlobal || 0) : (ch.ghostGlobal || 0), ch.ghostGlobal || 0, s);
+  if (ses.from && s < 1) GU.uGlob.value = Math.max(GU.uGlob.value, Math.sin(Math.PI * Math.min(1, s * 1.15)));   // 飛行途中屋頂淡出，不會整片白
+  if (ch.cam.move && ch.cam.move.gg) { const km = ease((tau / ch.D - ch.cam.move.k0) / (ch.cam.move.k1 - ch.cam.move.k0)); GU.uGlob.value = Math.max(GU.uGlob.value, ch.cam.move.gg * km); }
+  for (const L in MATS) { const m = MATS[L]; if (!m.userData.uOn) continue;
+    const on = q => (q.ghostSkip || []).includes(L) ? 0 : 1; m.userData.uOn.value = lerp(on(pv), on(ch), s); }
+  // 分區色塊
+  for (const id in FOOT) {
+    const f = FOOT[id]; const want = c => c.footAll ? 1 : (c.id === id ? 1 : 0);
+    f.userData.set(lerp(ses.prev !== i ? want(pv) : want(ch), want(ch), s));
+  }
+  // 陰影範圍跟著注視點
+  const hs = clamp(R * 0.85, 28, 260);
+  sun.target.position.copy(pose.c); sun.position.copy(pose.c).addScaledVector(SUN_DIR, 400);
+  const sk = [pose.c.x, pose.c.y, pose.c.z, hs].map(v => v.toFixed(2)).join(",");
+  if (sk !== shadowKey) { shadowKey = sk;
+    const sc = sun.shadow.camera; sc.left = -hs; sc.right = hs; sc.top = hs; sc.bottom = -hs; sc.near = 50; sc.far = 800; sc.updateProjectionMatrix();
+    sun.shadow.normalBias = clamp(hs / 4096 * 2.2, 0.02, 0.12); renderer.shadowMap.needsUpdate = true; }
+  // 標註：本章在飛抵後淡入，上一章快速淡出
+  const absT = T0[i] + tau;
+  if (ACT) { ACT.update(absT, dt); for (const t of TAGS[i]) if (t.dyn) { if (!ACT.dynPos(t.dyn, absT, t.p)) t.a = 0; } }
+  const W = $("stage").clientWidth, H = $("stage").clientHeight;
+  const vis = [];
+  if (ses.prev !== i) for (const t of TAGS[ses.prev]) { t.a = Math.min(t.a, clamp01(1 - tau / 0.45)); vis.push(t); }
+    TAGS[i].forEach((t, k) => { let a = clamp01((tau - ses.F * 0.75 - k * 0.18) / 0.6);
+    if (t.dyn && ACT && !ACT.dynPos(t.dyn, T0[i] + tau, t.p)) a = 0;
+    if (t.win) { const u = tau / ch.D; a *= clamp01((u - t.win[0]) * ch.D / 0.6 + (t.win[0] <= 0 ? 1 : 0)) * clamp01((t.win[1] - u) * ch.D / 0.6); }
+    t.a = a; vis.push(t); });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  // 字幕（標籤不進字幕帶；右上控制鈕區也避開）
+  const subShow = REC || (auto && subOn);
+  let st = "";
+  if (subShow) for (const [a, b, txt] of ch.subs || []) if (tau >= a && tau < b) { st = txt; break; }
+  const se = $("subt"); if (se.textContent !== st) se.textContent = st; se.style.opacity = st ? 1 : 0;
+  const obst = [];
+  if (subShow) { const bh = W < 700 ? 60 : 96; obst.push({ x: W * 0.06, y: H - bh - 14, w: W * 0.88, h: bh + 14 }); }
+  if (!REC) obst.push({ x: W - 560, y: 0, w: 560, h: 60 });
+  layoutTags(vis, W, H, dt, obst);
+  if (SIG) SIG.update(i, ses.prev, s, tau, absT, cam.position.distanceTo(pose.c));
+  pageUpdate(i, tau);
+  animPanel(tau);
+  // 章節列進度
+  const bi = $("bar").children[i].querySelector("i"); bi.style.width = (REC || auto ? clamp01(tau / ch.D) * 100 : 100) + "%";
+}
+let SIG = null;
+// ───────── 自動化導覽：盤位方塊、儀表標記、訊號光點（儀表 → 盤 → 核心交換器 → 中控）。全部是時間 t 的函數，錄影可逐格重現。
+function initSignals(THREE, scene, D, cam) {
+  const V = a => new THREE.Vector3(a[0], a[1], a[2]);
+  const KIND = { rio: { c: 0x1d7a46, s: [0.9, 2.2, 0.6] }, sis: { c: 0xc62828, s: [0.9, 2.2, 0.6] }, gw: { c: 0x5b4bd6, s: [0.7, 1.4, 0.45] },
+    core: { c: 0x0f6fd6, s: [1.2, 2.2, 0.8] }, ctrl: { c: 0xff7a1a, s: [3.2, 3.0, 2.0] } };
+  // 盤位：新設的才畫方塊（既有盤 GLB 已有）
+  const panelMesh = {};
+  for (const p of D.panels || []) {
+    if (p.exist) continue;
+    const k = KIND[p.kind]; if (!k) continue;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(k.s[0], k.s[1], k.s[2]), new THREE.MeshStandardMaterial({ color: k.c, roughness: 0.45, metalness: 0.2, emissive: k.c, emissiveIntensity: 0.25 }));
+    m.position.set(p.p[0], p.p[1] + k.s[1] / 2, p.p[2]); m.castShadow = true; scene.add(m);
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+    m.add(e); panelMesh[p.id] = m;
+  }
+  // 每章：路徑線＋儀表標記
+  const prep = D.chapters.map(ch => {
+    const sg = ch.sig || { paths: [], marks: [] };
+    const g = new THREE.Group(); g.visible = false; scene.add(g);
+    const lines = [], marks = [];
+    const paths = sg.paths.map(p => {
+      const pts = p.pts.map(V); const cum = [0];
+      for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+      const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(p.c), transparent: true, opacity: 0, depthTest: false });
+      const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat); ln.renderOrder = 8; g.add(ln);
+      lines.push({ mat, base: p.bus ? 0.55 : 0.75, win: p.win });
+      return { pts, cum, L: cum[cum.length - 1] || 1, n: p.n || 3, v: p.v || 4, col: new THREE.Color(p.c), win: p.win, bus: !!p.bus };
+    });
+    for (const mk of sg.marks) {
+      const col = new THREE.Color(mk.c);
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 12), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthTest: false, toneMapped: false }));
+      s.position.copy(V(mk.p)); s.renderOrder = 9; g.add(s);
+      const r = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.6, 32), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, side: THREE.DoubleSide, depthTest: false, toneMapped: false }));
+      r.position.copy(s.position); r.renderOrder = 9; g.add(r);
+      marks.push({ s, r, win: mk.win });
+    }
+    return { g, lines, marks, paths };
+  });
+  // 光點：一組 InstancedMesh 共用
+  const MAXD = 900;
+  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.2, 12, 8), new THREE.MeshBasicMaterial({ toneMapped: false, depthTest: false, transparent: true }), MAXD);
+  dots.instanceMatrix.setUsage(THREE.DynamicDrawUsage); dots.renderOrder = 10; dots.frustumCulled = false;
+  dots.setColorAt(0, new THREE.Color(1, 1, 1)); scene.add(dots);
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
+  const clamp01 = v => Math.min(1, Math.max(0, v));
+  function at(p, f, out) {
+    const d = f * p.L; let i = 1; while (i < p.cum.length - 1 && p.cum[i] < d) i++;
+    const a = p.pts[i - 1], b = p.pts[i], seg = (p.cum[i] - p.cum[i - 1]) || 1;
+    return out.copy(a).lerp(b, clamp01((d - p.cum[i - 1]) / seg));
+  }
+  const winA = (win, u, Dch) => !win ? 1 : clamp01((u - win[0]) * Dch / 0.6 + (win[0] <= 0 ? 1 : 0)) * clamp01((win[1] - u) * Dch / 0.6);
+  return {
+    update(i, prev, s, tau, absT, camDist) {
+      const scl = Math.min(3.2, Math.max(1, camDist / 48));
+      let n = 0;
+      const pulse = 1 + 0.28 * Math.sin(absT * 4.2);
+      prep.forEach((c, j) => {
+        let a = 0;
+        if (j === i) a = clamp01((tau - 0.6) / 1.0);
+        else if (j === prev && prev !== i) a = clamp01(1 - tau / 0.45);
+        c.g.visible = a > 0.003;
+        if (!c.g.visible) return;
+        const Dch = D.chapters[j].D, u = (j === i ? tau : D.chapters[j].D) / Dch;
+        c.lines.forEach(l => { l.mat.opacity = l.base * a * winA(l.win, u, Dch); });
+        c.marks.forEach(m => { const w = a * winA(m.win, u, Dch); m.s.material.opacity = 0.95 * w; m.r.material.opacity = 0.75 * w;
+          m.s.scale.setScalar(scl * 0.8); m.r.scale.setScalar(scl * pulse); m.r.quaternion.copy(cam.quaternion); });
+        for (const p of c.paths) {
+          const w = a * winA(p.win, u, Dch); if (w < 0.05) continue;
+          for (let k = 0; k < p.n && n < MAXD; k++) {
+            const f = ((absT * p.v / p.L) + k / p.n) % 1;
+            at(p, f, P); S.setScalar(scl * (p.bus ? 1.15 : 1) * Math.min(1, w * 1.5));
+            M.compose(P, Q, S); dots.setMatrixAt(n, M); dots.setColorAt(n, p.col); n++;
+          }
+        }
+      });
+      dots.count = n; dots.instanceMatrix.needsUpdate = true; if (dots.instanceColor) dots.instanceColor.needsUpdate = true;
+    },
+    panelMesh
+  };
+}
+
+// ───────── 載入模型
+const MATS = {};
+function resize() {
+  const st = $("stage"); const w = st.clientWidth, h = st.clientHeight;
+  renderer.setSize(w, h, false); cam.aspect = w / Math.max(1, h); cam.updateProjectionMatrix();
+  renderer.domElement.style.width = w + "px"; renderer.domElement.style.height = h + "px";
+}
+addEventListener("resize", resize); resize();
+async function load() {
+  const r = await fetch("model.glb?v=" + GLB_VER); if (!r.ok) throw new Error("模型下載失敗 " + r.status);
+  const rd = r.body.getReader(), bufs = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; bufs.push(value); got += value.length;
+    loadMsg("下載模型 " + Math.min(99, Math.round(got / GLB_SIZE * 100)) + "%（" + (got / 1e6).toFixed(1) + "／" + (GLB_SIZE / 1e6).toFixed(1) + " MB）"); }
+  const ab = new Uint8Array(got); { let o = 0; for (const p of bufs) { ab.set(p, o); o += p.length; } }
+  loadMsg("解壓模型…");
+  const DR = new DRACOLoader(); DR.setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/");
+  const GL = new GLTFLoader(); GL.setDRACOLoader(DR);
+  const gltf = await new Promise((ok, ng) => GL.parse(ab.buffer, "", ok, ng));
+  loadMsg("建立模型…");
+  await new Promise(r => setTimeout(r, 20));
+  const parts = [];
+  gltf.scene.traverse(o => { if (!o.isMesh) return; const g = o.geometry;
+    const pos = g.attributes.position.array instanceof Float32Array ? g.attributes.position.array : Float32Array.from(g.attributes.position.array);
+    const idx = g.index ? g.index.array : Uint32Array.from({ length: g.attributes.position.count }, (_, i) => i);
+    parts.push({ L: (o.material && o.material.name) || o.name, pos, idx }); });
+  DR.dispose();
+  const edgeRe = new RegExp(D.edgeLayers || "^(製程_|廠務_|電力_|防液堤|既有_)");
+  for (const { L, pos, idx } of parts) {
+    if ((D.hideLayers || []).includes(L)) continue;
+    const geo = creased(pos, idx);
+    const m = MATS[L] || (MATS[L] = makeMat(L));
+    const mesh = new THREE.Mesh(geo, m); mesh.name = L;
+    mesh.castShadow = !m.transparent && !D.ghostLayers.includes(L) && L !== "地面" && L !== "建物_地坪";
+    mesh.receiveShadow = true;
+    if (D.ghostLayers.includes(L)) mesh.renderOrder = /屋頂/.test(L) ? 4 : 3;
+    scene.add(mesh);
+    if (edgeRe.test(L)) {
+      const g0 = new THREE.BufferGeometry(); g0.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g0.setIndex(new THREE.BufferAttribute(idx, 1));
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(g0, 32), new THREE.LineBasicMaterial({ color: 0x27303a, transparent: true, opacity: 0.32 }));
+      scene.add(e); g0.dispose();
+    }
+  }
+  for (const ch of CH) if (ch.foot) FOOT[ch.id] = footprint(ch.foot);
+  $("load").style.display = "none";
+}
+await load();
+SIG = initSignals(THREE, scene, D, cam);
+enter(0, null, AZ0[0]);
+window.__ready = true;
+window.__dbg = { THREE, scene, cam, MATS, GU };          // 檢核用
+
+// ───────── 錄影：依時間軸逐格（與自動播放同一套鏡頭與換章規則）
+window.DECK = { total: T0[N], T0, chapters: CH.map(c => ({ id: c.id, no: c.no, short: c.short, D: c.D, lead: c.lead, aid: c.aid })) };
+window.renderAt = function (t, dt = 1 / 30) {
+  let i = 0; while (i < N - 1 && t >= T0[i + 1]) i++;
+  if (!ses || ses.i !== i) {
+    const from = i > 0 ? orbitPose(i - 1, CH[i - 1].D, AZ0[i - 1]) : null;
+    enter(i, from, AZ0[i]);
+  }
+  update(t - T0[i], dt); if (!window.renderAt.noRender) renderer.render(scene, cam);
+  return i;
+};
+window.renderChapter = function (i, tau) {            // 試拍：從本章起點前 1.5 s 逐格跑到指定時間（標註位置的平滑才會跟錄影一樣）
+  const t = T0[i] + tau; ses = null;
+  for (let tt = Math.max(0, t - 1.5); tt < t - 1e-6; tt += 1 / 30) window.renderAt(tt);
+  return window.renderAt(t);
+};
+// 檢核：逐格跑本章（只算鏡頭與標註、不出圖），抽樣檢查標註點是否在畫面內、是否被實體擋住、標籤是否互壓或壓到字幕、鏡頭上方有無構件
+window.audit = function (i, ns = 10) {
+  const rc = new THREE.Raycaster(); const solid = scene.children.filter(o => o.isMesh && o.material && !o.material.transparent && o !== ground && o.name !== "地面" && o.name !== "建物_地坪");
+  ses = null; const st = $("stage"), W = st.clientWidth, H = st.clientHeight;
+  const res = { id: CH[i].id, D: CH[i].D, samples: [], tags: CH[i].callouts.map(c => ({ t: c.t, inView: 0, visible: 0, n: 0 })), camAbove: 0, minCamY: 1e9, overlap: 0, subHit: 0 };
+  const F = flyTime(i > 0 ? orbitPose(i - 1, CH[i - 1].D, AZ0[i - 1]) : orbitPose(0, 0, AZ0[0]), orbitPose(i, 0, AZ0[i]));
+  const times = []; for (let k = 0; k < ns; k++) times.push(F + 1.0 + (CH[i].D - F - 1.5) * k / Math.max(1, ns - 1));
+  let tt = T0[i]; const end = T0[i] + CH[i].D - 0.05;
+  for (const tau of times) {
+    while (tt < T0[i] + tau) { window.renderAt.noRender = true; window.renderAt(tt); tt += 1 / 30; }
+    window.renderAt.noRender = true; window.renderAt(T0[i] + tau); window.renderAt.noRender = false;
+    res.minCamY = Math.min(res.minCamY, cam.position.y);
+    rc.set(cam.position, new THREE.Vector3(0, 1, 0)); if (rc.intersectObjects(solid, false).length) res.camAbove++;
+    const boxes = [];
+    TAGS[i].forEach((t, k) => {
+      const r = res.tags[k]; if (t.zone) { r.skip = "分區標籤"; return; }
+      if (t.win && (tau / CH[i].D < t.win[0] + 0.03 || tau / CH[i].D > t.win[1] - 0.03)) return;
+      r.n++;
+      _v.copy(t.p).project(cam); const ax = (_v.x + 1) / 2 * W, ay = (1 - _v.y) / 2 * H;
+      const inV = _v.z < 1 && ax > 0 && ax < W && ay > 0 && ay < H; if (inV) r.inView++;
+      const [hx, hz, hh] = t.box, top = t.p.clone().add(new THREE.Vector3(0, -0.3, 0)), mid = top.clone().add(new THREE.Vector3(0, -hh / 2, 0));
+      const pts = [top, mid.clone().add(new THREE.Vector3(hx, 0, 0)), mid.clone().add(new THREE.Vector3(-hx, 0, 0)), mid.clone().add(new THREE.Vector3(0, 0, hz)), mid.clone().add(new THREE.Vector3(0, 0, -hz))];
+      let seen = 0;
+      for (const q of pts) { const dir = q.clone().sub(cam.position); const dist = dir.length(); rc.set(cam.position, dir.normalize()); rc.far = dist;
+        if (!rc.intersectObjects(solid, false).some(h => h.distance < dist - Math.max(0.6, Math.min(hx, hz)))) seen++; }
+      if (inV && seen) r.visible++;
+      if (t.a > 0.5 && t.x !== null) boxes.push([t.x, t.y, t.x + t.w, t.y + t.h]);
+    });
+    for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) { const p = boxes[a], q = boxes[b]; if (p[0] < q[2] && p[2] > q[0] && p[1] < q[3] && p[3] > q[1]) res.overlap++; }
+    const se = $("subt").getBoundingClientRect(), sr = st.getBoundingClientRect();
+    if ($("subt").textContent) for (const p of boxes) if (p[0] < se.right - sr.left && p[2] > se.left - sr.left && p[1] < se.bottom - sr.top && p[3] > se.top - sr.top) res.subHit++;
+  }
+  res.minCamY = Math.round(res.minCamY * 10) / 10; return res;
+};
+// 檢核：全片逐格鏡頭軌跡（不出圖）：每格位移、速度跳動、注視點角速度，找換章或環繞的頓點
+window.motion = function (fps = 30) {
+  ses = null; const out = { frames: 0, maxStep: 0, maxJerk: 0, maxTurn: 0, worst: [], perCh: [] }; let p0 = null, v0 = null, d0 = null;
+  const total = T0[N]; const rows = [];
+  for (let f = 0; f * (1 / fps) < total; f++) {
+    const t = f / fps; window.renderAt.noRender = true; const i = window.renderAt(t, 1 / fps); window.renderAt.noRender = false;
+    const p = cam.position.clone(), d = new THREE.Vector3(); cam.getWorldDirection(d);
+    if (p0) { const v = p.clone().sub(p0); const step = v.length(); const turn = Math.acos(clamp(d.dot(d0), -1, 1)) / DEG;
+      const jerk = v0 ? v.clone().sub(v0).length() : 0; rows.push({ t, i, step, jerk, turn });
+      out.maxStep = Math.max(out.maxStep, step); out.maxJerk = Math.max(out.maxJerk, jerk); out.maxTurn = Math.max(out.maxTurn, turn); v0 = v; }
+    p0 = p; d0 = d; out.frames++;
+  }
+  out.worst = rows.slice().sort((a, b) => b.jerk - a.jerk).slice(0, 12).map(r => ({ t: +r.t.toFixed(2), ch: CH[r.i].id, jerk: +r.jerk.toFixed(3), step: +r.step.toFixed(3), turn: +r.turn.toFixed(2) }));
+  for (let i = 0; i < N; i++) { const rr = rows.filter(r => r.i === i); out.perCh.push({ id: CH[i].id, maxStep: +Math.max(...rr.map(r => r.step)).toFixed(3), maxJerk: +Math.max(...rr.map(r => r.jerk)).toFixed(3), maxTurnDeg: +Math.max(...rr.map(r => r.turn)).toFixed(2), orbitDegPerS: +(360 / CH[i].cam.T).toFixed(1) }); }
+  return out;
+};
+window.warmTo = function (t) { ses = null; for (let tt = Math.max(0, t - 1.5); tt < t - 1e-6; tt += 1 / 30) window.renderAt(tt); };
+if (REC) { window.renderAt(0); }
+else {
+  // ───────── 互動：拖曳旋轉、滾輪縮放、鍵盤換章、自動播放
+  const stg = $("stage"); let drag = null;
+  stg.addEventListener("pointerdown", e => { if (e.target.closest("#ctrl")) return; drag = { x: e.clientX, y: e.clientY }; stg.setPointerCapture(e.pointerId); });
+  stg.addEventListener("pointermove", e => { if (!drag) return; user.az -= (e.clientX - drag.x) * 0.28; user.el = clamp(user.el + (e.clientY - drag.y) * 0.18, -40, 40); drag = { x: e.clientX, y: e.clientY }; });
+  stg.addEventListener("pointerup", () => { drag = null; }); stg.addEventListener("pointercancel", () => { drag = null; });
+  stg.addEventListener("wheel", e => { e.preventDefault(); user.zoom = clamp(user.zoom * Math.exp(e.deltaY * 0.0012), 0.35, 2.6); }, { passive: false });
+  stg.addEventListener("dblclick", () => { user.az = 0; user.el = 0; user.zoom = 1; });
+  const setAuto = on => { auto = on; $("bPlay").textContent = on ? "❚❚ 暫停" : "▶ 自動播放"; $("bPlay").classList.toggle("on", on); if (on) { const s0 = ses.i >= N - 1 ? 0 : ses.i; goto(s0); if (voiceOn) voiceUnlock(CH[s0].aid); } else { clearTimeout(audTimer); audio.pause(); } bgmPlay(on); };
+  $("bPlay").onclick = () => setAuto(!auto);
+  $("bVoice").onclick = () => { voiceOn = !voiceOn; $("bVoice").classList.toggle("on", voiceOn); if (!voiceOn) audio.pause(); };
+  if (!BGM.on) $("bMusic").style.display = "none";
+  $("bMusic").onclick = () => { const v = !$("bMusic").classList.contains("on"); $("bMusic").classList.toggle("on", v); if (v) { BGM.on = true; if (auto) bgmPlay(true); } else { bgmPlay(false); BGM.on = false; BGM.el.pause(); } };
+  $("bSub").onclick = () => { subOn = !subOn; $("bSub").classList.toggle("on", subOn); };
+  $("bVideo").onclick = () => { if (auto) setAuto(false); window.open(D.video, "_blank"); };
+  $("bFull").onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); };
+  $("fold").onclick = () => { const f = !$("panel").classList.contains("folded"); $("panel").classList.toggle("folded", f); $("fold").textContent = f ? "展開 ▴" : "收合 ▾"; $("fold").setAttribute("aria-expanded", String(!f)); setTimeout(resize, 320); };
+  addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); goto(ses.i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); goto(ses.i - 1); }
+    else if (e.key === "Home") goto(0); else if (e.key === "End") goto(N - 1);
+    else if (e.key === "p" || e.key === "P") setAuto(!auto);
+    else if (e.key === "f" || e.key === "F") $("bFull").onclick();
+  });
+  new ResizeObserver(resize).observe($("stage"));
+  let last = performance.now();
+  (function loop() {
+    requestAnimationFrame(loop);
+    const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (window.__pause) return;
+    const tau = (now - ses.t0) / 1000;
+    if (auto && tau >= CH[ses.i].D) { if (ses.i < N - 1) goto(ses.i + 1); else setAuto(false); }
+    update((performance.now() - ses.t0) / 1000, dt); renderer.render(scene, cam);
+  })();
+}
+</script>
+</body>
+</html>
