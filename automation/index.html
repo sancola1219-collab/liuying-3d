@@ -98,7 +98,7 @@ button{font-family:inherit;cursor:pointer}
 .bg{display:grid;grid-template-columns:12em 1fr;align-items:center;gap:.6em;height:calc((100% - 1em)/14)}
 .bg b{font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bt{position:relative;height:70%}.bt i{position:absolute;left:0;top:0;bottom:0;background:#0f6fd6;border-radius:.2em}.bt span{position:absolute;right:.4em;top:50%;transform:translateY(-50%);font-weight:700;font-variant-numeric:tabular-nums}
 @container (aspect-ratio < 1){
-  #page .pg{font-size:min(2.55cqw,1.7cqh);padding:2cqh 2.5cqw 11cqh}
+  #page .pg{font-size:min(2.55cqw,1.7cqh);padding:62px 2.5cqw 11cqh}   /* 手機：上方留給按鈕列，不壓架構圖 */
   .arch{grid-template-columns:1fr;grid-template-rows:1fr auto}.zones{flex-direction:row;height:auto}.zn,.zbar{flex:1}.zot{flex:1.4}
   .lyr{grid-template-columns:5.2em 1fr;padding:.3em .6em}.lyr .ln{grid-column:1/-1;text-align:left;font-size:.92em}
   .two{grid-template-columns:1fr;grid-template-rows:auto auto;gap:.8em}.cards{display:grid;grid-template-columns:1fr 1fr;gap:.5em}.card p{font-size:.9em}
@@ -220,7 +220,7 @@ const loadMsg = t => { $("load").textContent = t; };
 const THREE = await import("three");
 const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
 const { DRACOLoader } = await import("three/addons/loaders/DRACOLoader.js");
-const GLB_VER = "202610122152", GLB_SIZE = 2527108;
+const GLB_VER = "202610122154", GLB_SIZE = 2527108;
 const D = JSON.parse($("deck-data").textContent);
 const AUD = JSON.parse($("deck-audio").textContent || "{}");
 const REC = new URLSearchParams(location.search).has("rec");
