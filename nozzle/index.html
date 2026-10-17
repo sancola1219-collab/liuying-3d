@@ -337,6 +337,10 @@ const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 controls.addEventListener('start', () => { tween = null; });
 let last = performance.now();
 function loop(now) {
+  requestAnimationFrame(loop);
+  try { frame(now); } catch (e) { if (!loop.err) { loop.err = 1; console.error(e); } }
+}
+function frame(now) {
   const dt = (now - last) / 1000; last = now;
   if (tween) {
     tween.t += dt; const k = ease(Math.min(1, tween.t / tween.dur));
@@ -352,7 +356,6 @@ function loop(now) {
   N.update(dt);
   renderer.render(scene, camera);
   layoutTags(stage.clientWidth, stage.clientHeight);
-  requestAnimationFrame(loop);
 }
 showInfo(null);
 const p0 = PRESETS[0].cam; camTo(p0, 0.01);

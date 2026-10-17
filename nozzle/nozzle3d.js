@@ -244,6 +244,7 @@ export function createNozzle({ seg = 144 } = {}) {
     const it = item(id, ex); const p = parts[id];
     const mM = mat(p, 'metal'), mD = mat(p, 'dark');
     const mR = ring ? mat(part(ring.id), 'silicone') : null;
+    if (ring) parts[ring.id].items.push(it);   // P6 O 型環跟著螺栓一起爆炸/定位
     for (let i = 0; i < n; i++) {
       const a = a0 + i * TAU / n;
       const x = R * Math.sin(a), z = R * Math.cos(a);
@@ -432,7 +433,7 @@ export function createNozzle({ seg = 144 } = {}) {
 
   function anchor(id, out = new THREE.Vector3(), phiFull = null) {
     const a = ANCHORS[id]; if (!a) return null;
-    const p = parts[id]; const it = p.items[0];
+    const p = parts[id]; const it = p && p.items[0]; if (!it) return null;
     if (a.ang) { const [r, y] = state.section ? a.sec : a.full; out.copy(polar(r, y, a.ang[state.section ? 1 : 0] * Math.PI / 180)); }
     else if (state.section) { const [r, y] = a.sec; out.set(r, y, 0.8); }
     else { const [r, y] = a.full; out.copy(polar(r, y, phiFull ?? 0.62)); }
