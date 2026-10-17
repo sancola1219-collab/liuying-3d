@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TJ-500 四流體噴頭 3D 解剖圖</title>
+<style>
+:root{
+  --bg:#f3f4f2; --panel:#fbfbf9; --ink:#1c2430; --ink2:#5a6472; --ink3:#8a929c; --line:#dfe2e0;
+  --acc:#d9622b; --acc2:#f6e3d8;
+  --gas1:#2f7fc4; --gas2:#1b9e9a; --liq1:#e0702a; --liq2:#c9970f;
+  --font:"Noto Sans TC","Microsoft JhengHei","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --pw:clamp(360px,30vw,540px); --bh:62px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+#app{position:fixed;inset:0;display:grid;grid-template-columns:var(--pw) 1fr;grid-template-rows:1fr var(--bh);grid-template-areas:"panel stage" "bar bar"}
+#panel{grid-area:panel;background:var(--panel);border-right:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column}
+#brand{display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:14px;letter-spacing:.16em;color:var(--ink3);gap:10px}
+#brand b{color:var(--ink);font-weight:700;letter-spacing:.12em}
+#brand a{letter-spacing:.04em;color:#fff;background:var(--acc);text-decoration:none;font-size:14px;padding:6px 12px;border-radius:16px;white-space:nowrap}
+#pin{flex:1;overflow:auto;padding:6px 30px 24px;scrollbar-width:thin}
+#no{font-size:84px;line-height:1;font-weight:200;color:var(--acc);letter-spacing:-.02em;margin-top:14px;font-variant-numeric:tabular-nums}
+#ttl{font-size:38px;font-weight:800;margin:8px 0 4px;line-height:1.15;letter-spacing:.02em}
+#sub{font-size:16px;color:var(--ink2);margin:0 0 14px;padding-left:12px;border-left:4px solid var(--acc)}
+#desc{font-size:17px;line-height:1.75;color:#333b46;margin:0 0 16px}
+#keys{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;margin-bottom:14px}
+.key{border-top:1px solid var(--line);padding:10px 0 6px}
+.key .v{font-size:30px;font-weight:800;color:var(--acc);line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.key .u{font-size:15px;font-weight:600;color:var(--ink2);margin-left:4px}
+.key .l{font-size:14px;color:var(--ink2);margin-top:3px;line-height:1.35}
+h3{font-size:14px;letter-spacing:.14em;color:var(--ink3);font-weight:600;margin:22px 0 8px;border-top:1px solid var(--line);padding-top:14px}
+#bom .grp{font-size:13px;color:var(--ink3);margin:10px 0 4px;letter-spacing:.08em}
+#bom button{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:baseline;width:100%;border:0;background:none;text-align:left;padding:7px 8px;border-radius:6px;color:var(--ink)}
+#bom button:hover{background:#f0f1ee}
+#bom button.on{background:var(--acc2)}
+#bom em{font-style:normal;font-weight:700;color:var(--acc);font-variant-numeric:tabular-nums;font-size:14px}
+#bom span{font-size:15px}
+#bom span small{display:block;font-size:12px;color:var(--ink3);letter-spacing:.02em}
+#bom i{font-style:normal;font-size:13px;color:var(--ink2);white-space:nowrap}
+#photos figure{margin:0 0 12px}
+#photos img{width:100%;border-radius:6px;display:block;border:1px solid var(--line)}
+#photos figcaption{font-size:13px;color:var(--ink2);margin-top:5px;line-height:1.5}
+.note{font-size:13px;color:var(--ink3);line-height:1.6;margin-top:16px}
+#stage{grid-area:stage;position:relative;overflow:hidden;background:radial-gradient(ellipse at 55% 40%,#f9faf9 0%,#e9eef2 70%,#e2e7eb 100%);touch-action:none}
+#gl{position:absolute;inset:0}
+#gl canvas{display:block;width:100%;height:100%}
+#lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#tags{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;left:0;top:0;background:rgba(255,255,255,.96);border:1px solid rgba(28,36,48,.14);border-left:4px solid var(--c,#d9622b);border-radius:3px;padding:4px 9px 5px 8px;white-space:nowrap;box-shadow:0 2px 8px rgba(20,30,40,.10);pointer-events:auto;cursor:pointer;transition:opacity .2s}
+.tag b{display:block;font-size:15px;font-weight:700;color:var(--ink);line-height:1.25}
+.tag s{display:block;text-decoration:none;font-size:12px;color:var(--ink2);line-height:1.25;letter-spacing:.02em}
+.tag.on{background:var(--acc);border-color:var(--acc)}.tag.on b,.tag.on s{color:#fff}
+#ctrl{position:absolute;right:16px;top:14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+#ctrl button{border:1px solid rgba(28,36,48,.16);background:rgba(255,255,255,.92);color:var(--ink);font-size:14px;padding:7px 13px;border-radius:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+#ctrl button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#exp{position:absolute;left:18px;bottom:16px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.9);border:1px solid rgba(28,36,48,.12);border-radius:22px;padding:7px 14px;font-size:14px;color:var(--ink2)}
+#exp input{width:170px;accent-color:var(--acc)}
+#legend{position:absolute;left:18px;top:14px;display:none;gap:6px 14px;flex-wrap:wrap;background:rgba(255,255,255,.9);border:1px solid rgba(28,36,48,.12);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--ink2);max-width:46%}
+#legend.on{display:flex}
+#legend span{display:inline-flex;align-items:center;gap:6px}
+#legend i{width:13px;height:13px;border-radius:3px;display:inline-block}
+#hint{position:absolute;right:16px;bottom:14px;font-size:13px;color:var(--ink2);pointer-events:none;background:rgba(255,255,255,.82);padding:4px 10px;border-radius:12px}
+#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ink2);background:rgba(243,244,242,.92)}
+#bar{grid-area:bar;display:flex;align-items:stretch;background:#fff;border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+#bar::-webkit-scrollbar{display:none}
+#bar button{flex:1 0 auto;min-width:86px;border:0;border-right:1px solid #eef0ee;background:none;padding:8px 10px 10px;text-align:left;position:relative;color:var(--ink3)}
+#bar button em{display:block;font-style:normal;font-size:13px;font-weight:700;letter-spacing:.06em}
+#bar button span{display:block;font-size:14px;white-space:nowrap;margin-top:2px}
+#bar button.on{color:var(--ink);background:#f6f7f5}
+#bar button.on em{color:var(--acc)}
+#bar button.on::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--acc)}
+#fold{display:none}
+@media (max-width:820px) and (orientation:portrait){
+  :root{--bh:56px}
+  #app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto var(--bh);grid-template-areas:"stage" "panel" "bar"}
+  #panel{border-right:0;border-top:1px solid var(--line);max-height:38vh;transition:max-height .3s}
+  #panel.folded{max-height:70px}
+  #brand{padding:10px 16px 0;font-size:12px}#brand a{font-size:12px;padding:4px 10px}
+  #pin{padding:2px 16px 14px}
+  #no{font-size:38px;margin-top:2px;display:inline-block}
+  #ttl{font-size:24px;display:inline-block;margin:0 0 0 10px;vertical-align:6px}
+  #sub{font-size:13px;margin:6px 0 10px}#desc{font-size:14px;line-height:1.6}
+  .key .v{font-size:22px}.key .l{font-size:12px}
+  #fold{display:block;position:absolute;right:12px;top:40px;border:1px solid var(--line);background:#fff;border-radius:14px;font-size:12px;padding:3px 10px;color:var(--ink2);z-index:2}
+  #ctrl{right:8px;top:8px;gap:5px;max-width:92%}#ctrl button{font-size:12px;padding:5px 9px}
+  #legend{top:auto;bottom:58px;left:8px;max-width:94%;font-size:11px;padding:5px 8px}
+  #exp{left:8px;bottom:8px;padding:4px 10px;font-size:12px}#exp input{width:120px}
+  .tag{padding:2px 6px 3px 6px;border-left-width:3px}.tag b{font-size:11px}.tag s{display:none}
+  #hint{display:none}
+  #bar button{min-width:70px}#bar button span{font-size:12px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="inapp" style="display:none;position:fixed;left:0;right:0;top:0;z-index:99;background:#b45309;color:#fff;padding:8px 12px;font-size:14px;text-align:center">LINE／FB 內建瀏覽器可能開不動 3D，請點右上角「…」→「用預設瀏覽器開啟」（Chrome／Safari）</div>
+<script>if (/Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent)) document.getElementById("inapp").style.display = "block";</script>
+<div id="app">
+  <aside id="panel">
+    <div id="brand"><span><b>大川原 TJ-500</b>　四流體噴頭解剖</span><a href="tour/">▶ 運作導覽：液體→粉體</a></div>
+    <button id="fold" aria-expanded="true">收合 ▾</button>
+    <div id="pin">
+      <div id="no">TJ</div>
+      <h1 id="ttl">四流體噴頭</h1>
+      <p id="sub">Twin Jet・二段微粒化　噴霧乾燥機 OTB-40 用</p>
+      <p id="desc"></p>
+      <div id="keys"></div>
+      <h3>零件表（BOM）　點一下看位置</h3>
+      <div id="bom"></div>
+      <h3>現場照片</h3>
+      <div id="photos">
+        <figure><img src="photos/body.jpg" alt="組立後噴頭本體" loading="lazy"><figcaption>組立後的噴頭本體：中間那圈亮帶就是刀緣疊起來的位置，環狀噴縫在這裡 360° 出霧。</figcaption></figure>
+        <figure><img src="photos/parts.jpg" alt="下導氣環與氣帽" loading="lazy"><figcaption>拆下的下段：前方碗形件（帶白色鐵氟龍墊片、6 個螺栓孔）與後方錐形殼，兩者之間就是下氣通道。</figcaption></figure>
+        <figure><img src="photos/flange.jpg" alt="上段底面與墊片" loading="lazy"><figcaption>上段底面一整圈螺栓孔，手上拿的是拆下來的鐵氟龍墊片。</figcaption></figure>
+      </div>
+      <p class="note">外形與零件依原廠組立圖（TJ-500, 3-72002）與爆炸圖建模；內部流道（哪一路走氣、哪一路走液）是依 O-ring 尺寸、管徑配置與四流體噴嘴專利原理推估的示意，實際以原廠資料為準。</p>
+    </div>
+  </aside>
+  <main id="stage">
+    <div id="gl"></div>
+    <svg id="lines"></svg>
+    <div id="tags"></div>
+    <div id="legend">
+      <span><i style="background:var(--gas1)"></i>上氣（外套管 150A）</span>
+      <span><i style="background:var(--liq1)"></i>上液（液管 ×2）</span>
+      <span><i style="background:var(--liq2)"></i>下液（液管 ×2）</span>
+      <span><i style="background:var(--gas2)"></i>下氣（中心 32A→中心軸）</span>
+    </div>
+    <div id="ctrl">
+      <button id="bSec">剖面</button>
+      <button id="bFlow">流道</button>
+      <button id="bSpray">噴霧</button>
+      <button id="bTag" class="on">標籤</button>
+      <button id="bRot" class="on">旋轉</button>
+    </div>
+    <label id="exp">爆炸 <input id="rExp" type="range" min="0" max="1" step="0.01" value="0"></label>
+    <div id="hint">拖曳旋轉・滾輪縮放・點零件看說明</div>
+    <div id="load">建立模型中…</div>
+  </main>
+  <nav id="bar"></nav>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createNozzle, META, META_BY_ID } from './nozzle3d.js';
+
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+$('gl').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c0c8, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(300, 600, 400); scene.add(sun);
+const camera = new THREE.PerspectiveCamera(32, 1, 2, 20000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.autoRotateSpeed = 0.5;
+controls.minDistance = 25; controls.maxDistance = 4000;
+
+const N = createNozzle();
+scene.add(N.root);
+$('load').remove();
+
+// ── 總覽文字 ──
+const OVERVIEW = {
+  no: 'TJ', ttl: '四流體噴頭', sub: 'Twin Jet・二段微粒化　噴霧乾燥機 OTB-40 用',
+  desc: '兩路液體＋兩路壓縮空氣，從同一圈環狀噴縫 360° 噴出。液體先被氣流壓成幾微米厚的液膜，在刀尖脫離金屬；上、下兩股氣流再在刀尖外的「衝突焦點」對撞，用震波把液膜撕成 10 µm 以下的細霧。按右上「剖面」「流道」看裡面怎麼走。',
+  keys: [['150', 'A', '外套管（上氣）'], ['4×10', 'A', '液管，PCD 103'], ['32', 'A', '中心氣管（下氣）'], ['360', '°', '環狀噴縫出霧']],
+};
+function showInfo(id) {
+  const m = id && META_BY_ID[id];
+  const o = m ? { no: m.no, ttl: m.zh, sub: `${m.en}　${m.mat}${m.q > 1 ? '　×' + m.q : ''}${m.wt ? '　' + m.wt + ' kg' : ''}`, desc: m.d, keys: [] } : OVERVIEW;
+  $('no').textContent = o.no; $('ttl').textContent = o.ttl; $('sub').textContent = o.sub; $('desc').textContent = o.desc;
+  $('keys').innerHTML = o.keys.map(k => `<div class="key"><div class="v">${k[0]}<span class="u">${k[1]}</span></div><div class="l">${k[2]}</div></div>`).join('');
+  $('keys').style.display = o.keys.length ? '' : 'none';
+  document.querySelectorAll('#bom button').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  $('pin').scrollTo({ top: 0, behavior: 'smooth' });
+}
+// BOM
+{
+  let html = '', g = '';
+  for (const m of META) {
+    if (m.grp !== g) { g = m.grp; html += `<div class="grp">${g}</div>`; }
+    html += `<button data-id="${m.id}"><em>${m.no}</em><span>${m.zh}<small>${m.en}・${m.mat}</small></span><i>${m.q > 1 ? '×' + m.q : ''}${m.wt ? ' ' + m.wt + 'kg' : ''}</i></button>`;
+  }
+  $('bom').innerHTML = html;
+  $('bom').addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(b.dataset.id === selected ? null : b.dataset.id); });
+}
+
+// ── 視角預設 ──
+const PRESETS = [
+  { k: '01', t: '外觀', s: { section: false, explode: 0, flows: false, spray: false }, cam: [0, 90, 0, 38, 16, 1050] },
+  { k: '02', t: '剖面', s: { section: true, explode: 0, flows: false, spray: false }, cam: [20, 80, 0, 40, 14, 980] },
+  { k: '03', t: '爆炸圖', s: { section: false, explode: 1, flows: false, spray: false }, cam: [0, 20, 0, 36, 10, 2750] },
+  { k: '04', t: '剖面爆炸', s: { section: true, explode: 1, flows: false, spray: false }, cam: [20, 20, 0, 42, 8, 2700] },
+  { k: '05', t: '四條流道', s: { section: true, explode: 0, flows: true, spray: false }, cam: [40, 80, 0, 42, 10, 1060] },
+  { k: '06', t: '噴縫特寫', s: { section: true, explode: 0, flows: true, spray: true }, cam: [98, 2, 0, 4, 2, 105], tags: ['p4', 'p5', 'p6', 'p7', 'p9'] },
+  { k: '07', t: '360° 噴霧', s: { section: false, explode: 0, flows: false, spray: true }, cam: [0, -30, 0, 30, 30, 1700] },
+];
+let cur = -1;
+$('bar').innerHTML = PRESETS.map((p, i) => `<button data-i="${i}"><em>${p.k}</em><span>${p.t}</span></button>`).join('');
+$('bar').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.i); });
+
+let tween = null;
+function camTo(c, dur = 1.6) {
+  const [tx, ty, tz, az, el, R] = c;
+  const tgt = new THREE.Vector3(tx, ty, tz);
+  const a = az * Math.PI / 180, e = el * Math.PI / 180;
+  const pos = tgt.clone().add(new THREE.Vector3(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)).multiplyScalar(R));
+  tween = { t: 0, dur, p0: camera.position.clone(), p1: pos, t0: controls.target.clone(), t1: tgt };
+}
+let expAnim = null;
+function go(i) {
+  cur = i; const p = PRESETS[i];
+  document.querySelectorAll('#bar button').forEach((b, j) => b.classList.toggle('on', j === i));
+  const { explode, ...rest } = p.s;
+  N.set(rest);
+  expAnim = { from: N.state.explode, to: explode, t: 0 };
+  syncButtons();
+  camTo(p.cam);
+  controls.autoRotate = rot && i !== 5;
+}
+function syncButtons() {
+  $('bSec').classList.toggle('on', N.state.section);
+  $('bFlow').classList.toggle('on', N.state.flows);
+  $('bSpray').classList.toggle('on', N.state.spray);
+  $('legend').classList.toggle('on', N.state.flows && N.state.section);
+}
+$('bSec').onclick = () => { N.set({ section: !N.state.section }); syncButtons(); };
+$('bFlow').onclick = () => { const on = !N.state.flows; N.set({ flows: on, section: on ? true : N.state.section }); if (on && N.state.explode > 0) setExplode(0); syncButtons(); };
+$('bSpray').onclick = () => { N.set({ spray: !N.state.spray }); syncButtons(); };
+let showTags = true; $('bTag').onclick = () => { showTags = !showTags; $('bTag').classList.toggle('on', showTags); };
+let rot = true; $('bRot').onclick = () => { rot = !rot; controls.autoRotate = rot; $('bRot').classList.toggle('on', rot); };
+function setExplode(v) { expAnim = null; N.set({ explode: v }); $('rExp').value = v; }
+$('rExp').oninput = e => setExplode(+e.target.value);
+$('fold').onclick = () => { const f = $('panel').classList.toggle('folded'); $('fold').textContent = f ? '展開 ▴' : '收合 ▾'; };
+
+// ── 選取 ──
+let selected = null;
+function select(id) {
+  selected = id;
+  N.set({ focus: id ? [id] : null });
+  showInfo(id);
+  if (id && N.anchor(id)) {
+    const a = N.anchor(id);
+    const off = camera.position.clone().sub(controls.target);
+    tween = { t: 0, dur: 1.0, p0: camera.position.clone(), p1: a.clone().add(off), t0: controls.target.clone(), t1: a.clone() };
+  }
+}
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hits = ray.intersectObjects(N.pickables.filter(m => m.visible && m.parent.visible && m.parent.parent.visible && !m.material.transparent), false);
+  select(hits.length ? hits[0].object.userData.partId : null);
+});
+
+// ── 標籤（左右兩欄，依螢幕高度排序避讓） ──
+const TAGSETS = {
+  full: ['c12', 'c13', 'c14', 'c11', 'p4', 'p6', 'p9', 'p10'],
+  sec: ['c12', 'c13', 'c14', 'c11', 'p3', 'p2', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'or110'],
+  exp: ['c14', 'c11', 'p101', 'p3', 'p4', 'or135', 'p5', 'or90', 'p6', 'p7', 'p8', 'p2', 'p9', 'p10'],
+};
+const tagEls = {};
+for (const m of META) {
+  const el = document.createElement('div'); el.className = 'tag'; el.style.display = 'none';
+  el.innerHTML = `<b>${m.no}　${m.zh}</b><s>${m.en}</s>`;
+  el.onclick = () => select(selected === m.id ? null : m.id);
+  $('tags').appendChild(el); tagEls[m.id] = el;
+}
+const v3 = new THREE.Vector3();
+function layoutTags(w, h) {
+  const svg = $('lines'); let lines = '';
+  for (const el of Object.values(tagEls)) el.style.display = 'none';
+  if (!showTags) { svg.innerHTML = ''; return; }
+  const pre = PRESETS[cur];
+  const set = (pre && pre.tags && camera.position.distanceTo(controls.target) < 400) ? pre.tags : N.state.explode > 0.5 ? TAGSETS.exp : N.state.section ? TAGSETS.sec : TAGSETS.full;
+  const ids = new Set(set); if (selected) ids.add(selected);
+  const c0 = v3.copy(controls.target).project(camera); const cx = (c0.x + 1) / 2 * w;
+  const az = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
+  const pts = [];
+  const full = !N.state.section && N.state.explode < 0.5;
+  let k = 0;
+  const order = [...ids].sort((a, b) => (N.anchor(b)?.y ?? 0) - (N.anchor(a)?.y ?? 0));
+  for (const id of order) {
+    const side0 = k++ % 2 ? 'R' : 'L';
+    const a = full ? N.anchor(id, undefined, az + (side0 === 'L' ? -1.15 : 1.15)) : N.anchor(id); if (!a) continue;
+    const p = a.project(camera);
+    if (p.z > 1 || p.x < -1.1 || p.x > 1.1 || p.y < -1.1 || p.y > 1.1) continue;
+    const sx = (p.x + 1) / 2 * w, sy = (1 - p.y) / 2 * h;
+    pts.push({ id, sx, sy, side: full ? side0 : sx < cx ? 'L' : 'R' });
+  }
+  const mobile = w < 600;
+  const gap = mobile ? 24 : 38;
+  for (const side of ['L', 'R']) {
+    const col = pts.filter(p => p.side === side).sort((a, b) => a.sy - b.sy);
+    if (!col.length) continue;
+    const xs = col.map(p => p.sx);
+    const colX = side === 'L' ? Math.max(8, Math.min(...xs) - (mobile ? 70 : 150)) : Math.min(w - 8, Math.max(...xs) + (mobile ? 30 : 60));
+    let y = -1e9;
+    for (const p of col) { p.ty = Math.max(p.sy, y + gap); y = p.ty; }
+    const over = y - (h - 70); if (over > 0) for (const p of col) p.ty -= over;
+    for (let i = 1; i < col.length; i++) if (col[i].ty < col[i - 1].ty + gap) col[i].ty = col[i - 1].ty + gap;
+    for (const p of col) {
+      const el = tagEls[p.id]; el.style.display = '';
+      el.classList.toggle('on', p.id === selected);
+      const ew = el.offsetWidth, eh = el.offsetHeight;
+      let x = side === 'L' ? Math.min(colX, p.sx - 30) - ew : Math.max(colX, p.sx + 30);
+      x = Math.max(4, Math.min(w - ew - 4, x));
+      el.style.transform = `translate(${x}px,${p.ty - eh / 2}px)`;
+      const ex = side === 'L' ? x + ew : x;
+      const col2 = p.id === selected ? '#d9622b' : 'rgba(28,36,48,.45)';
+      lines += `<polyline points="${p.sx},${p.sy} ${(ex + p.sx) / 2},${p.ty} ${ex},${p.ty}" fill="none" stroke="${col2}" stroke-width="1.2"/><circle cx="${p.sx}" cy="${p.sy}" r="3" fill="${col2}"/>`;
+    }
+  }
+  svg.innerHTML = lines;
+}
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  N.setPointScale(renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360)));
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+controls.addEventListener('start', () => { tween = null; });
+let last = performance.now();
+function loop(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (tween) {
+    tween.t += dt; const k = ease(Math.min(1, tween.t / tween.dur));
+    camera.position.lerpVectors(tween.p0, tween.p1, k); controls.target.lerpVectors(tween.t0, tween.t1, k);
+    if (tween.t >= tween.dur) tween = null;
+  }
+  if (expAnim) {
+    expAnim.t += dt / 1.4; const k = ease(Math.min(1, expAnim.t));
+    N.set({ explode: expAnim.from + (expAnim.to - expAnim.from) * k }); $('rExp').value = N.state.explode;
+    if (expAnim.t >= 1) expAnim = null;
+  }
+  controls.update();
+  N.update(dt);
+  renderer.render(scene, camera);
+  layoutTags(stage.clientWidth, stage.clientHeight);
+  requestAnimationFrame(loop);
+}
+showInfo(null);
+const p0 = PRESETS[0].cam; camTo(p0, 0.01);
+go(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

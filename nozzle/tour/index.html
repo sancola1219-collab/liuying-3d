@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>四流體噴頭運作導覽｜從液體到粉體</title>
+<style>
+:root{
+  --bg:#f3f4f2; --panel:#fbfbf9; --ink:#1c2430; --ink2:#5a6472; --ink3:#8a929c; --line:#dfe2e0;
+  --acc:#d9622b; --acc2:#f6e3d8;
+  --font:"Noto Sans TC","Microsoft JhengHei","PingFang TC","Heiti TC",system-ui,sans-serif;
+  --pw:clamp(360px,30vw,560px); --bh:66px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+#app{position:fixed;inset:0;display:grid;grid-template-columns:var(--pw) 1fr;grid-template-rows:1fr var(--bh);grid-template-areas:"panel stage" "bar bar"}
+#panel{grid-area:panel;background:var(--panel);border-right:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column}
+#brand{display:flex;justify-content:space-between;align-items:center;padding:22px 34px 0;font-size:14px;letter-spacing:.18em;color:var(--ink3);gap:10px}
+#brand b{color:var(--ink);font-weight:700;letter-spacing:.12em}
+#brand a{color:var(--ink2);letter-spacing:.04em;text-decoration:none;border:1px solid var(--line);border-radius:14px;padding:4px 10px;font-size:13px;white-space:nowrap}
+#pin{flex:1;overflow:auto;padding:10px 34px 24px;scrollbar-width:thin}
+#no{font-size:118px;line-height:1;font-weight:200;color:var(--acc);letter-spacing:-.02em;margin-top:18px;font-variant-numeric:tabular-nums}
+#no small{font-size:20px;color:var(--ink3);font-weight:400;letter-spacing:.1em;margin-left:10px;vertical-align:top;position:relative;top:16px}
+#ttl{font-size:46px;font-weight:800;margin:8px 0 4px;line-height:1.15;letter-spacing:.02em}
+#sub{font-size:18px;color:var(--ink2);margin:0 0 18px;padding-left:12px;border-left:4px solid var(--acc)}
+#desc{font-size:19px;line-height:1.75;color:#333b46;margin:0 0 20px}
+#keys{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;margin-bottom:18px}
+.key{border-top:1px solid var(--line);padding:12px 0 8px}
+.key .v{font-size:38px;font-weight:800;color:var(--acc);line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.key .u{font-size:17px;font-weight:600;color:var(--ink2);margin-left:5px}
+.key .l{font-size:15px;color:var(--ink2);margin-top:4px;line-height:1.35}
+#legend{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14px;color:var(--ink2)}
+#legend:empty{display:none}
+#legend span{display:inline-flex;align-items:center;gap:7px}
+#legend i{display:inline-block;width:14px;height:14px;border-radius:3px}
+#fold{display:none}
+#stage{grid-area:stage;position:relative;overflow:hidden;background:radial-gradient(ellipse at 55% 40%,#f9faf9 0%,#e9eef2 70%,#e2e7eb 100%);touch-action:none}
+#gl{position:absolute;inset:0;transition:opacity .35s}
+#gl canvas{display:block;width:100%;height:100%}
+#lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#tags{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;left:0;top:0;background:rgba(255,255,255,.95);border:1px solid rgba(28,36,48,.14);border-left:4px solid var(--c,#d9622b);border-radius:3px;padding:5px 10px 6px 9px;white-space:nowrap;box-shadow:0 2px 8px rgba(20,30,40,.10);transition:opacity .3s}
+.tag b{display:block;font-size:17px;font-weight:700;color:var(--ink);line-height:1.25}
+.tag s{display:block;text-decoration:none;font-size:14px;color:var(--ink2);line-height:1.25}
+#subt{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);max-width:86%;text-align:center;font-size:29px;line-height:1.45;color:#fff;background:rgba(24,30,38,.74);padding:8px 22px 10px;border-radius:6px;opacity:0;pointer-events:none;letter-spacing:.03em;transition:opacity .2s}
+#ctrl{position:absolute;right:18px;top:16px;display:flex;gap:8px;align-items:center}
+#ctrl button{border:1px solid rgba(28,36,48,.16);background:rgba(255,255,255,.92);color:var(--ink);font-size:15px;padding:8px 14px;border-radius:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+#ctrl button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#hint{position:absolute;right:16px;bottom:12px;font-size:13px;color:var(--ink2);pointer-events:none;background:rgba(255,255,255,.82);padding:4px 10px;border-radius:12px}
+#chart{position:absolute;left:20px;top:18px;width:360px;background:rgba(255,255,255,.93);border:1px solid rgba(28,36,48,.12);border-radius:10px;padding:10px 12px 8px;display:none;box-shadow:0 2px 10px rgba(20,30,40,.08)}
+#chart.on{display:block}
+#chart h4{margin:0 0 4px;font-size:14px;color:var(--ink2);font-weight:600;letter-spacing:.06em}
+#chart svg{width:100%;height:auto;display:block}
+#start{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(243,244,242,.35);z-index:5}
+#start button{font-size:24px;font-weight:700;background:var(--acc);color:#fff;border:0;border-radius:40px;padding:16px 34px;box-shadow:0 6px 24px rgba(217,98,43,.35)}
+#start small{display:block;font-size:14px;font-weight:400;opacity:.9;margin-top:4px}
+#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ink2);background:rgba(243,244,242,.9);z-index:6}
+#bar{grid-area:bar;display:flex;align-items:stretch;background:#fff;border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+#bar::-webkit-scrollbar{display:none}
+#bar button{flex:1 0 auto;min-width:64px;border:0;border-right:1px solid #eef0ee;background:none;padding:8px 8px 10px;text-align:left;position:relative;color:var(--ink3)}
+#bar button em{display:block;font-style:normal;font-size:13px;font-weight:700;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+#bar button span{display:block;font-size:14px;white-space:nowrap;margin-top:2px}
+#bar button.on{color:var(--ink);background:#f6f7f5}
+#bar button.on em{color:var(--c,#d9622b)}
+#bar button i{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--c,#d9622b)}
+#bar button.done i{width:100%;opacity:.25}
+@media (max-width:820px) and (orientation:portrait){
+  :root{--bh:58px}
+  #app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto var(--bh);grid-template-areas:"stage" "panel" "bar"}
+  #panel{border-right:0;border-top:1px solid var(--line);max-height:34vh;transition:max-height .3s}
+  #panel.folded{max-height:76px}
+  #brand{padding:10px 16px 0;font-size:12px}
+  #pin{padding:4px 16px 14px}
+  #no{font-size:44px;margin-top:2px;display:inline-block}
+  #no small{font-size:13px;top:4px}
+  #ttl{font-size:26px;display:inline-block;margin:0 0 0 10px;vertical-align:6px}
+  #sub{font-size:14px;margin:6px 0 10px}
+  #desc{font-size:15px;line-height:1.6}
+  .key .v{font-size:26px}.key .u{font-size:14px}.key .l{font-size:13px}
+  #fold{display:block;position:absolute;right:12px;top:34px;border:1px solid var(--line);background:#fff;border-radius:14px;font-size:13px;padding:4px 12px;color:var(--ink2);z-index:2}
+  .tag{padding:2px 6px 3px 6px;border-left-width:3px}.tag b{font-size:12px}.tag s{font-size:10px}
+  #ctrl{right:8px;top:8px;gap:5px}#ctrl button{font-size:12px;padding:5px 9px}
+  #subt{font-size:15px;max-width:94%;padding:5px 12px 6px;bottom:8px}
+  #chart{width:220px;left:8px;top:48px;padding:6px 8px}#chart h4{font-size:11px}
+  #hint{display:none}
+  #bar button{min-width:58px}#bar button span{font-size:12px}
+}
+@media (max-width:1100px) and (orientation:landscape){
+  :root{--pw:clamp(260px,32vw,360px)}
+  #no{font-size:64px}#ttl{font-size:30px}#desc{font-size:15px}.key .v{font-size:26px}
+  #subt{font-size:20px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="inapp" style="display:none;position:fixed;left:0;right:0;top:0;z-index:99;background:#b45309;color:#fff;padding:8px 12px;font-size:14px;text-align:center">LINE／FB 內建瀏覽器可能開不動 3D，請點右上角「…」→「用預設瀏覽器開啟」（Chrome／Safari）</div>
+<script>if (/Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent)) document.getElementById("inapp").style.display = "block";</script>
+<div id="app">
+  <aside id="panel">
+    <div id="brand"><span><b>四流體噴頭</b>　從液體到粉體</span><a href="../">← 3D 解剖圖</a></div>
+    <button id="fold" aria-expanded="true">收合 ▾</button>
+    <div id="pin">
+      <div id="no">00</div>
+      <h1 id="ttl"></h1>
+      <p id="sub"></p>
+      <p id="desc"></p>
+      <div id="keys"></div>
+      <div id="legend"></div>
+    </div>
+  </aside>
+  <main id="stage">
+    <div id="gl"></div>
+    <svg id="lines"></svg>
+    <div id="tags"></div>
+    <div id="chart"><h4>霧滴溫度與含水率（示意）</h4><svg id="chartSvg" viewBox="0 0 340 160"></svg></div>
+    <div id="subt"></div>
+    <div id="ctrl">
+      <button id="bPlay">▶ 自動播放</button>
+      <button id="bVoice" class="on">旁白</button>
+      <button id="bMusic" class="on">音樂</button>
+      <button id="bSub" class="on">字幕</button>
+      <button id="bFull">全螢幕</button>
+    </div>
+    <div id="hint">← → 或空白鍵換章　拖曳旋轉　滾輪縮放</div>
+    <div id="start"><button id="bStart">▶ 開始導覽<small>有旁白・約 7 分鐘</small></button></div>
+    <div id="load">載入中…</div>
+  </main>
+  <nav id="bar"></nav>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createNozzle, makePoints, pointsMaterial, COLORS } from '../nozzle3d.js';
+
+const $ = id => document.getElementById(id);
+const C = COLORS;
+const LEG_FLOW = [['#2f7fc4', '上氣（外套管）'], ['#e0702a', '上液'], ['#c9970f', '下液'], ['#1b9e9a', '下氣（中心軸）']];
+
+// ── 章節 ───────────────────────────────────────────
+const CH = [
+  { id:'c00', short:'封面', title:'四流體噴頭', sub:'大川原 TJ-500・從一滴漿料到一顆粉體', color:'#2e3a4b',
+    desc:'噴霧乾燥機最上方的這顆噴頭，負責把濃稠的漿料打成均勻細霧。這段導覽從構造開始，一路跟著液體走到粉體。',
+    keys:[['2+2','路','兩路液＋兩路氣'],['≤10','µm','霧滴等級'],['360','°','環狀噴縫出霧'],['3','步','霧化→乾燥→收集']],
+    scene:'nozzle', n:{ section:false, explode:0, flows:false, spray:true }, cam:[0,40,0,30,14,1500], orbit:0.35, tags:[] },
+  { id:'c01', short:'三步驟', title:'噴霧乾燥三步驟', sub:'霧化 → 乾燥 → 收集', color:'#2e3a4b',
+    desc:'噴頭把液體打成細霧；霧滴在熱風中幾秒內蒸發水分；旋風分離器與袋式集塵器把粉體收下來。決定粉體樣子的第一關，就是噴頭。',
+    keys:[['3','步','霧化・乾燥・收集'],['數','秒','霧滴乾燥時間'],['200–280','°C','進風溫度（典型）'],['75–110','°C','出風溫度（典型）']],
+    scene:'dryer', pk:1, cam:[2300,-2000,0,16,14,23000], orbit:0.1, tags:['heater','feed','nozzle','chamber','cyclone','bag','fan'] },
+  { id:'c02', short:'噴頭位置', title:'噴頭裝在塔頂', sub:'並流：熱風和霧滴同方向往下', color:'#2e3a4b',
+    desc:'噴頭從塔頂中央插入，噴縫位在熱風分配器出口下方。最熱的風先碰到最濕的霧滴，蒸發吸熱讓產品不過熱。',
+    keys:[['並流','',  '熱風與霧滴同向'],['360','°','霧滴往外圈擴散']],
+    scene:'dryer', pk:0.32, cam:[0,-700,0,32,8,4600], orbit:0.25, tags:['disperser','nozzle','hotair'] },
+  { id:'c03', short:'外觀', title:'外觀與四個入口', sub:'150A 外套管・32A 中心氣管・10A 液管 ×4', color:'#2f7fc4',
+    desc:'外套管走第一路壓縮空氣；中心 32A 氣管送第二路空氣；四支 10A 液管分布在 PCD 103 上，兩支供上液、兩支供下液。',
+    keys:[['150','A','外套管：上氣'],['32','A','中心氣管：下氣'],['4×10','A','液管：上液＋下液'],['103','mm','液管分布圓 PCD']],
+    scene:'nozzle', n:{ section:false, explode:0, flows:false, spray:false }, cam:[0,110,0,38,16,1150], orbit:0.3,
+    tags:['c12','c13','c14','c11','slit','p9'] },
+  { id:'c04', short:'零件堆疊', title:'拆開來：一層一層疊', sub:'外殼組 → 導氣環 → 三片刀緣 → 導氣環 → 氣帽', color:'#2f7fc4',
+    desc:'上導氣環、上刀緣、中刀緣、下刀緣、下導氣環依序疊起，中空中心軸從底部穿上，定位螺帽＋止鬆螺帽鎖緊。每層接合面都有 O 型環。',
+    keys:[['12','項','主要零件（BOM 1–10）'],['6','條','大 O 型環（G90×3・G110×2・G135）'],['3','片','刀緣（上・中・下）'],['SUS','304','全不鏽鋼']],
+    scene:'nozzle', n:{ section:false, explode:1, flows:false, spray:false }, cam:[0,20,0,36,10,2750], orbit:0.2,
+    tags:['c11','p101','p3','p4','or135','p5','p6','p7','p8','p2','p9','p10'] },
+  { id:'c05', short:'四條流道', title:'剖面：四條流道', sub:'兩路氣、兩路液，匯到同一圈噴縫', color:'#2f7fc4',
+    desc:'藍＝上氣，從外套管進；青＝下氣，從中心氣管穿過中心軸、繞到底部再上來；橘、黃＝兩路液體。四條路全部匯集到噴縫。',
+    keys:[['4','路','流體'],['1','圈','共用噴縫']], legend:LEG_FLOW,
+    scene:'nozzle', n:{ section:true, explode:0, flows:true, spray:false }, cam:[40,80,0,42,10,1080], orbit:0, tags:['c14','c12','c13','p2','p4','p6','p8','p9'] },
+  { id:'c06', short:'液體路徑', title:'液體怎麼走', sub:'液管 → 鑽孔 → 環狀分配槽 → 液縫 → 中刀緣表面', color:'#e0702a',
+    desc:'液體往下經外殼接座的鑽孔進入刀緣之間的環狀分配槽，沿 360° 平均攤開，再從窄液縫擠出，貼在中刀緣上下兩面。',
+    keys:[['360','°','分配槽均勻攤開'],['2','面','中刀緣上下各一層液膜']], legend:LEG_FLOW.slice(1,3),
+    scene:'nozzle', n:{ section:true, explode:0, flows:true, spray:false, filter:['liq1','liq2'] }, cam:[45,150,0,32,16,760], cam2:[80,8,0,22,8,330], orbit:0,
+    tags:['c13','c11','p5','p6','p7'] },
+  { id:'c07', short:'氣體路徑', title:'氣體怎麼走', sub:'上氣走上導氣環下緣・下氣繞底部氣室上來', color:'#1b9e9a',
+    desc:'上氣沿上導氣環與上刀緣之間的縫，下氣沿氣帽與下刀緣之間的縫，被壓得又薄又快，貼著液膜衝向刀尖。O 型環隔開氣與液。',
+    keys:[['0.3–0.6','MPa','霧化氣壓（典型等級）'],['G90','G110','G135：隔開氣液的 O 型環']], legend:[LEG_FLOW[0],LEG_FLOW[3]],
+    scene:'nozzle', n:{ section:true, explode:0, flows:true, spray:false, filter:['gas1','gas2'] }, cam:[40,40,0,52,8,980], cam2:[86,-12,0,30,6,400], orbit:0,
+    tags:['c14','c12','p2','p4','p8','p9','p10','or135'] },
+  { id:'c08', short:'第一段', title:'第一段：拉成液膜', sub:'二段微粒化之一 —— 液膜在刀口離開金屬', color:'#e0702a',
+    desc:'高速氣流貼著液面吹，把液體越拉越薄、越拉越快，到刀尖只剩幾微米厚，在銳利刀口脫離金屬碎成液滴。',
+    keys:[['數','µm','刀尖處液膜厚度'],['0.1–1.5','mm','縫寬等級（專利範圍）']], legend:LEG_FLOW,
+    scene:'nozzle', n:{ section:true, explode:0, flows:true, spray:true, flowSize:0.8 }, cam:[96,2,0,4,2,112], orbit:0,
+    tags:['p4','p5','p6','p7','p9', { p:[106,1.9,1.4], t:'液膜', s:'越拉越薄' }] },
+  { id:'c09', short:'衝突焦點', title:'第二段：衝突焦點', sub:'兩股氣流對撞，震波把液滴再打碎', color:'#d9622b',
+    desc:'上、下兩股氣流在刀尖外對撞，震波與高頻振盪把液滴再打碎一次，成為 10 µm 以下、大小整齊的細霧。外部混合，漿料不易堵。',
+    keys:[['≤10','µm','霧滴（窄分布）'],['外部','混合','含固體漿料不易堵']], legend:LEG_FLOW,
+    scene:'nozzle', n:{ section:true, explode:0, flows:true, spray:true, flowSize:0.55 }, cam:[113,0.5,0,3,1,44], orbit:0,
+    tags:['p6', { p:[119.3,0,1.4], t:'衝突焦點', s:'上下氣流對撞', c:'#d9622b' }, { p:[110,3.2,1.4], t:'上氣', c:'#2f7fc4' }, { p:[110,-3.2,1.4], t:'下氣', c:'#1b9e9a' }] },
+  { id:'c10', short:'360° 噴霧', title:'360° 圓盤狀噴霧', sub:'環形刀緣＝把噴口拉長', color:'#2e3a4b',
+    desc:'噴縫一整圈，霧往外 360° 噴出像一片圓盤。環形刀緣讓處理量放大而不必加大氣量。氣壓、氣液比、黏度是調粒徑的三個旋鈕。',
+    keys:[['氣多','液少','→ 霧更細'],['黏度','↑','→ 霧變粗'],['氣壓','↑','→ 液膜更薄'],['處理量','↑','→ 加長刀緣']],
+    scene:'nozzle', n:{ section:false, explode:0, flows:false, spray:true }, cam:[0,-30,0,25,34,1900], orbit:0.45, tags:['slit'] },
+  { id:'c11', short:'遇上熱風', title:'霧滴遇上熱風', sub:'表面積大 → 水分瞬間開始蒸發', color:'#c2410c',
+    desc:'微米級霧滴的表面積相對體積非常大，一進熱風就開始蒸發。乾燥塔的高度與直徑，就是為了讓霧滴在碰到塔壁前乾好。',
+    keys:[['數','秒','塔內停留'],['碰壁前','結殼','設計原則']],
+    scene:'dryer', pk:0.6, cam:[0,-1900,0,24,6,9500], orbit:0.2, tags:['hotair','nozzle','chamber','dry'] },
+  { id:'c12', short:'恆率乾燥', title:'第一階段：恆率乾燥', sub:'表面全濕，溫度停在濕球溫度', color:'#2f7fc4',
+    desc:'熱風的熱全部拿去蒸發水分，霧滴溫度停在濕球溫度（約 40–50 °C）附近，所以熱風兩百多度，粉體也不會過熱。霧滴縮小，奈米顆粒靠攏。',
+    keys:[['≈45','°C','霧滴溫度（濕球）'],['↓','','霧滴直徑持續縮小']],
+    scene:'drop', drop:[0,0.4], chart:true, cam:[0,0,0,20,8,330], orbit:0.25, tags:['dDroplet','dVapor','dPrimary','dAir'] },
+  { id:'c13', short:'結殼', title:'第二階段：結殼＋減率乾燥', sub:'水分要穿過殼才出得來', color:'#c2410c',
+    desc:'表面水供應不上，顆粒在表面堆成殼，進入減率乾燥期；蒸發變慢、溫度上升。殼必須在碰到塔壁前成形，所以霧滴大小要整齊。',
+    keys:[['↑','°C','顆粒溫度開始上升'],['殼層','','先成形在外圈']],
+    scene:'drop', drop:[0.4,0.75], chart:true, cam:[0,0,0,-15,10,300], orbit:0.25, tags:['dShell','dVapor','dAir'] },
+  { id:'c14', short:'成粒', title:'成粒：球形二次顆粒', sub:'一次顆粒 < 200 nm・二次顆粒數 µm', color:'#4b5563',
+    desc:'水分蒸發完，留下由許多一次顆粒堆成的球形二次顆粒。固含量高、乾得穩容易得到實心球；殼太早封住可能變中空或破殼。',
+    keys:[['<200','nm','一次顆粒（LFP 例）'],['3–15','µm','二次顆粒'],['實心','','固含量高・乾得穩'],['中空','','殼太早封住']],
+    scene:'drop', drop:[0.75,1], chart:true, cam:[0,0,0,40,14,250], orbit:0.35, tags:['dSecondary'] },
+  { id:'c15', short:'分離收集', title:'分離收集', sub:'旋風分離器 → 袋式集塵器 → 排風機', color:'#2e3a4b',
+    desc:'粉體隨出口氣流離開塔底；旋風分離器用離心力收下大部分粉體，細粉由袋式集塵器攔下，乾淨空氣由排風機排出。粉體再去煅燒。',
+    keys:[['75–110','°C','出風溫度'],['離心','力','旋風分離'],['煅燒','','下一道工序']],
+    scene:'dryer', pk:0.85, cam:[4200,-2400,0,10,10,13500], orbit:0.1, tags:['outlet','cyclone','bin','bag','fan'] },
+  { id:'c16', short:'保養', title:'保養重點', sub:'霧形不正常・壓力上升・噴縫堵 → 拆開檢查', color:'#c8402f',
+    desc:'拆裝時逐條檢查 O 型環是否夾傷；液管接上前先刷洗、確認無異物；確認液管、氣管法蘭螺栓沒有鬆動。縫寬只有零點幾毫米，異物會讓霧形變歪、粒徑變大。',
+    keys:[['6+6','條','O 型環（大 6・P6 6）'],['3','片','墊片（鐵氟龍×2・矽膠×1）']], legend:[['#c8402f','O 型環／墊片（紅、白）']],
+    scene:'nozzle', n:{ section:true, explode:1, flows:false, spray:false, focus:['or90','or110','or135','p109','p103','p104','p105'] }, cam:[20,20,0,42,8,2700], orbit:0.15,
+    tags:['or135','or110','or90','p103','p104','p105','p109'] },
+  { id:'c17', short:'回顧', title:'從液體到粉體', sub:'幾秒鐘的旅程', color:'#2e3a4b',
+    desc:'液管進料 → 刀緣液膜 → 衝突焦點霧化 → 恆率乾燥 → 結殼減率 → 成粒 → 旋風／袋濾收集。',
+    keys:[['4','µm','級液膜'],['≤10','µm','霧滴'],['數','秒','乾燥'],['3–15','µm','二次顆粒']],
+    scene:'nozzle', n:{ section:false, explode:0, flows:false, spray:true }, cam:[0,40,0,210,14,1500], orbit:0.35, tags:[] },
+];
+
+// ── three.js 基本 ───────────────────────────────────────
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+$('gl').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c0c8, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(3000, 6000, 4000); scene.add(sun);
+const camera = new THREE.PerspectiveCamera(32, 1, 2, 120000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+
+// ── 場景 1：噴頭 ──
+const N = createNozzle();
+scene.add(N.root);
+
+// ── 場景 2：噴霧乾燥系統（mm） ──
+const D = buildDryer();
+scene.add(D.group);
+
+// ── 場景 3：單顆霧滴（放大） ──
+const P = buildDroplet();
+scene.add(P.group);
+
+const SCENES = { nozzle: N.root, dryer: D.group, drop: P.group };
+function showScene(k) { for (const [n, g] of Object.entries(SCENES)) g.visible = n === k; }
+
+function lineMat(c = 0x8d99a6, o = 0.55) { return new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: o }); }
+function glass(c = 0xdfe6ec, o = 0.16) { return new THREE.MeshStandardMaterial({ color: c, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide, metalness: 0.2, roughness: 0.3 }); }
+function steel() { return new THREE.MeshStandardMaterial({ color: 0xc9ced3, metalness: 0.85, roughness: 0.32 }); }
+
+function latheShell(profile, mat, lines = true, x = 0, z = 0) {
+  const g = new THREE.Group();
+  const pts = profile.map(p => new THREE.Vector2(p[0], p[1]));
+  const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 96), mat); g.add(m);
+  if (lines) {
+    const seg = [];
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; for (let i = 0; i < pts.length - 1; i++) seg.push(pts[i].x * Math.sin(a), pts[i].y, pts[i].x * Math.cos(a), pts[i + 1].x * Math.sin(a), pts[i + 1].y, pts[i + 1].x * Math.cos(a)); }
+    for (const p of pts) { if (p.x < 1) continue; for (let k = 0; k < 96; k++) { const a = k / 96 * Math.PI * 2, b = (k + 1) / 96 * Math.PI * 2; seg.push(p.x * Math.sin(a), p.y, p.x * Math.cos(a), p.x * Math.sin(b), p.y, p.x * Math.cos(b)); } }
+    const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(seg, 3));
+    g.add(new THREE.LineSegments(lg, lineMat()));
+  }
+  g.position.set(x, 0, z);
+  return g;
+}
+function tube(points, r, mat) {
+  const path = new THREE.CurvePath();
+  for (let i = 0; i < points.length - 1; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...points[i]), new THREE.Vector3(...points[i + 1])));
+  return new THREE.Mesh(new THREE.TubeGeometry(path, points.length * 24, r, 20, false), mat);
+}
+// 沿折線移動的粒子
+function polyFlow(pts, n, speed, color, size, jitter, alpha = 0.7) {
+  const v = pts.map(p => new THREE.Vector3(...p)); const cum = [0];
+  for (let i = 1; i < v.length; i++) cum.push(cum[i - 1] + v[i].distanceTo(v[i - 1]));
+  const L = cum[cum.length - 1];
+  const pm = pointsMaterial(); const obj = makePoints(n, pm);
+  const s = new Float32Array(n).map(() => Math.random()), off = new Float32Array(n * 3).map(() => (Math.random() - 0.5) * 2 * jitter);
+  const col = new THREE.Color(color);
+  const a = obj.geometry.attributes;
+  for (let i = 0; i < n; i++) { a.aColor.array.set([col.r, col.g, col.b], i * 3); a.aSize.array[i] = size * (0.7 + Math.random() * 0.6); }
+  const tmp = new THREE.Vector3();
+  return { obj, mat: pm, update(dt) {
+    for (let i = 0; i < n; i++) {
+      s[i] = (s[i] + speed * dt / L) % 1; const d = s[i] * L;
+      let k = 1; while (k < cum.length - 1 && cum[k] < d) k++;
+      tmp.lerpVectors(v[k - 1], v[k], (d - cum[k - 1]) / (cum[k] - cum[k - 1] || 1));
+      a.position.array[i * 3] = tmp.x + off[i * 3]; a.position.array[i * 3 + 1] = tmp.y + off[i * 3 + 1]; a.position.array[i * 3 + 2] = tmp.z + off[i * 3 + 2];
+      a.aAlpha.array[i] = alpha * Math.min(1, s[i] * 20) * Math.min(1, (1 - s[i]) * 20);
+    }
+    a.position.needsUpdate = a.aAlpha.needsUpdate = true;
+  } };
+}
+
+function buildDryer() {
+  const g = new THREE.Group(); g.name = 'dryer';
+  const R = 1500, H = 2600, CB = -4800;
+  // 乾燥室
+  g.add(latheShell([[220, CB], [R, -H], [R, 0], [650, 0]], glass(0xdde5ec, 0.2)));
+  // 熱風分配器＋熱風管
+  const disp = latheShell([[650, 0], [650, 420], [0, 420]], steel(), false); g.add(disp);
+  const hot = new THREE.MeshStandardMaterial({ color: 0xd9622b, metalness: 0.3, roughness: 0.5 });
+  g.add(tube([[-3200, 260, 0], [-640, 260, 0]], 220, steel()));
+  const heater = new THREE.Mesh(new THREE.BoxGeometry(1300, 1000, 1000), steel()); heater.position.set(-3500, 260, 0); g.add(heater);
+  for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(30, 760, 860), hot); f.position.set(-3950 + i * 180, 260, 0); g.add(f); }
+  // 噴頭（示意放大 2.6 倍，看得見）
+  const N2 = createNozzle({ seg: 64 }); N2.root.scale.setScalar(2.6); N2.root.position.y = -420; g.add(N2.root);
+  // 進料：槽＋泵＋管
+  const liq = new THREE.MeshStandardMaterial({ color: 0xe0702a, metalness: 0.2, roughness: 0.5 });
+  g.add(latheShell([[0, -5300], [560, -5300], [560, -3900], [0, -3900]], steel(), false, -3200, -1200));
+  const pump = new THREE.Mesh(new THREE.CylinderGeometry(220, 220, 420, 24), hot); pump.rotation.z = Math.PI / 2; pump.position.set(-2300, -5150, -1200); g.add(pump);
+  const feedPts = [[-2500, -5150, -1200], [-2000, -5150, -1200], [-2000, 1250, -1200], [-2000, 1250, 0], [0, 1250, 0], [0, 470, 0]];
+  g.add(tube(feedPts, 45, liq));
+  // 出口管 → 旋風
+  const cx = 3300;
+  const duct = [[0, CB, 0], [0, -5150, 0], [2100, -5150, 0], [2100, -2450, 0], [cx - 460, -2450, 0]];
+  g.add(tube(duct, 200, glass(0xcfd8e0, 0.35)));
+  g.add(latheShell([[110, -4750], [460, -3500], [460, -2150], [180, -2150]], glass(0xdde5ec, 0.25), true, cx, 0));
+  const bin = new THREE.Mesh(new THREE.CylinderGeometry(380, 380, 520, 32), steel()); bin.position.set(cx, -5100, 0); g.add(bin);
+  g.add(tube([[cx, -4750, 0], [cx, -4840, 0]], 90, steel()));
+  // 旋風頂 → 袋式集塵器 → 排風機 → 煙囪
+  const bx = 5700;
+  g.add(tube([[cx, -2150, 0], [cx, -1100, 0], [bx, -1100, 0], [bx, -1350, 0]], 170, glass(0xcfd8e0, 0.35)));
+  const bag = new THREE.Mesh(new THREE.BoxGeometry(1500, 2300, 1500), glass(0xdde5ec, 0.22)); bag.position.set(bx, -2500, 0); g.add(bag);
+  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(bag.geometry), lineMat()).translateX(bx).translateY(-2500));
+  for (let i = 0; i < 9; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(110, 110, 1700, 16), new THREE.MeshStandardMaterial({ color: 0xe9e4d8, roughness: 0.9 })); b.position.set(bx - 450 + (i % 3) * 450, -2450, -450 + Math.floor(i / 3) * 450); g.add(b); }
+  const hop = new THREE.Mesh(new THREE.ConeGeometry(1060, 900, 4, 1, true), glass(0xdde5ec, 0.25)); hop.rotation.y = Math.PI / 4; hop.rotation.x = Math.PI; hop.position.set(bx, -4100, 0); g.add(hop);
+  const fx = 7600;
+  g.add(tube([[bx + 750, -1700, 0], [fx, -1700, 0], [fx, -4300, 0]], 160, steel()));
+  const fan = new THREE.Mesh(new THREE.CylinderGeometry(520, 520, 380, 32), steel()); fan.rotation.x = Math.PI / 2; fan.position.set(fx, -4600, 0); g.add(fan);
+  g.add(tube([[fx + 400, -4600, 0], [8600, -4600, 0], [8600, 1600, 0]], 230, steel()));
+  // 地面
+  const grid = new THREE.GridHelper(26000, 52, 0xc6ccd2, 0xdde1e4); grid.position.set(2200, -5560, 0); g.add(grid);
+
+  // 粒子：熱風
+  const flows = [];
+  const hotAir = polyFlow([[-3000, 260, 0], [-700, 260, 0], [0, 260, 0]], 120, 1600, '#e2552b', 70, 140, 0.5);
+  g.add(hotAir.obj); flows.push(hotAir);
+  const feed = polyFlow(feedPts, 140, 900, '#e0702a', 50, 20, 0.85); g.add(feed.obj); flows.push(feed);
+  const exhaust = polyFlow([[cx, -2150, 0], [cx, -1100, 0], [bx, -1100, 0], [bx, -1500, 0], [bx, -1700, 0], [fx, -1700, 0], [fx, -4600, 0], [8600, -4600, 0], [8600, 1700, 0]], 260, 2200, '#9aa3ab', 60, 110, 0.35);
+  g.add(exhaust.obj); flows.push(exhaust);
+  // 塔內熱風（往下、逐漸降溫）
+  const NA = 700, aMat = pointsMaterial(), air = makePoints(NA, aMat); g.add(air);
+  const aS = new Float32Array(NA).map(() => Math.random()), aR = new Float32Array(NA).map(() => Math.random()), aA = new Float32Array(NA).map(() => Math.random() * Math.PI * 2);
+  const hotC = new THREE.Color('#e2552b'), coolC = new THREE.Color('#b9a99c');
+  // 霧滴 → 粉體
+  const NP = 1700, pMat = pointsMaterial(), pw = makePoints(NP, pMat); g.add(pw);
+  const pU = new Float32Array(NP).map(() => Math.random()), pR = new Float32Array(NP).map(() => 0.35 + Math.random() * 0.6), pA = new Float32Array(NP).map(() => Math.random() * Math.PI * 2), pY = new Float32Array(NP).map(() => Math.random());
+  const dropC = new THREE.Color('#3f7fb8'), powC = new THREE.Color('#50545a'), c = new THREE.Color();
+  const lerp = (a, b, t) => a + (b - a) * t, cl = t => Math.max(0, Math.min(1, t));
+  const sm = t => t * t * (3 - 2 * t);
+  function pPos(i, u, out) {
+    const a0 = pA[i], R0 = 260 + pR[i] * 1150;
+    if (u < 0.07) { const t = sm(u / 0.07); const r = lerp(300, R0, t); return out.set(r * Math.sin(a0), lerp(-420, -700 - pY[i] * 300, t), r * Math.cos(a0)); }
+    if (u < 0.6) { const t = (u - 0.07) / 0.53; const a = a0 + t * 0.8; return out.set(R0 * Math.sin(a), lerp(-700 - pY[i] * 300, -H, t), R0 * Math.cos(a)); }
+    if (u < 0.74) { const t = (u - 0.6) / 0.14; const a = a0 + 0.8 + t * 0.6; const y = lerp(-H, CB, t); const rr = R0 / R * lerp(R, 200, t) * 0.85; return out.set(rr * Math.sin(a), y, rr * Math.cos(a)); }
+    if (u < 0.84) { // 出口管
+      const t = (u - 0.74) / 0.10, segs = duct; const L = [0]; for (let k = 1; k < segs.length; k++) L.push(L[k - 1] + Math.hypot(segs[k][0] - segs[k - 1][0], segs[k][1] - segs[k - 1][1]));
+      const d = t * L[L.length - 1]; let k = 1; while (k < L.length - 1 && L[k] < d) k++; const f = (d - L[k - 1]) / (L[k] - L[k - 1]);
+      return out.set(lerp(segs[k - 1][0], segs[k][0], f) + Math.cos(a0) * 90, lerp(segs[k - 1][1], segs[k][1], f) + Math.sin(a0) * 90, Math.sin(a0 * 3) * 90);
+    }
+    const t = (u - 0.84) / 0.16; const a = a0 + t * 22; const y = lerp(-2450, -4800, t); const rr = y > -3500 ? 420 : lerp(420, 100, (-3500 - y) / 1250);
+    return out.set(cx + rr * Math.sin(a), y, rr * Math.cos(a));
+  }
+  const tmp = new THREE.Vector3();
+  const st = { rate: 1 };
+  function update(dt) {
+    for (const f of flows) f.update(dt);
+    const ap = air.geometry.attributes;
+    for (let i = 0; i < NA; i++) {
+      aS[i] += dt / 7; if (aS[i] > 1) { aS[i] -= 1; aR[i] = Math.random(); aA[i] = Math.random() * Math.PI * 2; }
+      const u = aS[i]; let y, r;
+      if (u < 0.7) { y = lerp(-60, -H, u / 0.7); r = lerp(520 + aR[i] * 100, 200 + aR[i] * 1250, sm(Math.min(1, u / 0.25))); }
+      else { const t = (u - 0.7) / 0.3; y = lerp(-H, CB, t); r = (200 + aR[i] * 1250) / R * lerp(R, 200, t) * 0.85; }
+      const a = aA[i] + u * 1.2;
+      ap.position.array.set([r * Math.sin(a), y, r * Math.cos(a)], i * 3);
+      c.copy(hotC).lerp(coolC, cl(u * 1.3)); ap.aColor.array.set([c.r, c.g, c.b], i * 3);
+      ap.aAlpha.array[i] = 0.32 * Math.min(1, u * 15) * Math.min(1, (1 - u) * 10); ap.aSize.array[i] = 80;
+    }
+    ap.position.needsUpdate = ap.aColor.needsUpdate = ap.aAlpha.needsUpdate = ap.aSize.needsUpdate = true;
+    const pp = pw.geometry.attributes;
+    for (let i = 0; i < NP; i++) {
+      pU[i] += dt / 11; if (pU[i] > 1) { pU[i] -= 1; pA[i] = Math.random() * Math.PI * 2; pR[i] = 0.35 + Math.random() * 0.6; }
+      const u = pU[i]; pPos(i, u, tmp); pp.position.array.set([tmp.x, tmp.y, tmp.z], i * 3);
+      const dry = cl((u - 0.03) / 0.3); c.copy(dropC).lerp(powC, sm(dry)); pp.aColor.array.set([c.r, c.g, c.b], i * 3);
+      pp.aAlpha.array[i] = 0.8 * Math.min(1, u * 60) * Math.min(1, (1 - u) * 25) * st.rate; pp.aSize.array[i] = lerp(70, 34, sm(dry));
+    }
+    pp.position.needsUpdate = pp.aColor.needsUpdate = pp.aAlpha.needsUpdate = pp.aSize.needsUpdate = true;
+  }
+  const mats = [hotAir.mat, feed.mat, exhaust.mat, aMat, pMat];
+  const labels = {
+    heater: { p: [-3500, 900, 0], t: '熱風爐', s: '進風 200–280 °C', c: '#d9622b' },
+    feed: { p: [-3200, -3800, -1200], t: '漿料槽＋進料泵', s: '把漿料送上塔頂', c: '#e0702a' },
+    disperser: { p: [0, 420, 650], t: '熱風分配器', s: '熱風均勻往下吹', c: '#d9622b' },
+    hotair: { p: [-900, -1300, 0], t: '熱風（並流往下）', s: '越往下越涼', c: '#d9622b' },
+    nozzle: { p: [0, -420, 300], t: '四流體噴頭', s: '360° 出霧', c: '#2f7fc4' },
+    chamber: { p: [R, -1500, 0], t: '乾燥室', s: '霧滴在此乾燥成粉', c: '#2e3a4b' },
+    dry: { p: [900, -2900, 900], t: '霧滴→粉體', s: '藍：霧滴　灰：已乾', c: '#50545a' },
+    outlet: { p: [0, -5150, 0], t: '塔底出口', s: '出風 75–110 °C', c: '#2e3a4b' },
+    cyclone: { p: [cx + 460, -3000, 0], t: '旋風分離器', s: '離心力收集粉體', c: '#2e3a4b' },
+    bin: { p: [cx, -5300, 0], t: '成品收集桶', s: '', c: '#50545a' },
+    bag: { p: [bx, -1350, 750], t: '袋式集塵器', s: '攔下細粉', c: '#2e3a4b' },
+    fan: { p: [fx, -4600, 300], t: '排風機', s: '乾淨空氣排出', c: '#5a6472' },
+  };
+  return { group: g, update, labels, mats, N2 };
+}
+
+function buildDroplet() {
+  const g = new THREE.Group(); g.name = 'drop';
+  const water = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), new THREE.MeshStandardMaterial({ color: 0x8cc0e8, transparent: true, opacity: 0.32, roughness: 0.08, metalness: 0.1, depthWrite: false }));
+  const rim = new THREE.Mesh(new THREE.SphereGeometry(1.004, 64, 48), new THREE.MeshBasicMaterial({ color: 0x5b9bd0, transparent: true, opacity: 0.12, side: THREE.BackSide, depthWrite: false }));
+  g.add(water, rim);
+  const NP = 440;
+  const pm = new THREE.MeshStandardMaterial({ color: 0x4a4f57, roughness: 0.55, metalness: 0.25 });
+  const inst = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(2.5, 1), pm, NP); g.add(inst);
+  // 目標：緊密堆積的球（由外而內的殼層）
+  const target = [], rnd = [], delay = [];
+  const shells = [33, 27.2, 21.4, 15.6, 9.8, 4]; const areas = shells.map(r => r * r); const sumA = areas.reduce((a, b) => a + b, 0);
+  let left = NP;
+  shells.forEach((r, si) => {
+    const n = si === shells.length - 1 ? left : Math.round(NP * areas[si] / sumA); left -= n;
+    for (let k = 0; k < n; k++) {
+      const y = 1 - (k + 0.5) / n * 2, rr = Math.sqrt(1 - y * y), th = k * 2.39996 + si;
+      target.push(new THREE.Vector3(rr * Math.cos(th) * r, y * r, rr * Math.sin(th) * r)); delay.push(1 - r / 33);
+    }
+  });
+  for (let i = 0; i < NP; i++) { let v; do { v = new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1); } while (v.length() > 1); rnd.push(v); }
+  const phase = new Float32Array(NP).map(() => Math.random() * 100);
+  // 蒸氣
+  const NV = 500, vm = pointsMaterial(), vap = makePoints(NV, vm); g.add(vap);
+  const vp = new Float32Array(NV * 3), vv = new Float32Array(NV * 3), vage = new Float32Array(NV).fill(99), vlife = new Float32Array(NV).fill(1);
+  const vC = new THREE.Color('#7fa9cf');
+  // 熱風
+  const air = polyFlowLocal();
+  function polyFlowLocal() {
+    const n = 260, m = pointsMaterial(), o = makePoints(n, m); g.add(o);
+    const x = new Float32Array(n).map(() => (Math.random() - 0.5) * 420), z = new Float32Array(n).map(() => (Math.random() - 0.5) * 300), y = new Float32Array(n).map(() => Math.random() * 400 - 200);
+    const col = new THREE.Color('#e2552b');
+    for (let i = 0; i < n; i++) { o.geometry.attributes.aColor.array.set([col.r, col.g, col.b], i * 3); o.geometry.attributes.aSize.array[i] = 2.2 + Math.random() * 1.5; }
+    return { m, update(dt, R) {
+      const a = o.geometry.attributes;
+      for (let i = 0; i < n; i++) {
+        y[i] -= 140 * dt; if (y[i] < -200) { y[i] += 400; x[i] = (Math.random() - 0.5) * 420; z[i] = (Math.random() - 0.5) * 300; }
+        // 繞過液滴
+        let px = x[i], pz = z[i]; const d = Math.hypot(px, y[i], pz); const R2 = R * 1.25;
+        if (d < R2) { const k = R2 / Math.max(d, 1e-3); px *= k; pz *= k; }
+        a.position.array.set([px, y[i], pz], i * 3);
+        a.aAlpha.array[i] = 0.35 * Math.min(1, (200 - Math.abs(y[i])) / 60);
+      }
+      a.position.needsUpdate = a.aAlpha.needsUpdate = true;
+    } };
+  }
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const st = { p: 0, R: 60 };
+  const sm = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function radius(p) { return p < 0.4 ? lerp(60, 43, p / 0.4) : p < 0.75 ? lerp(43, 37.5, (p - 0.4) / 0.35) : lerp(37.5, 36.6, (p - 0.75) / 0.25); }
+  let clock = 0;
+  function update(dt) {
+    clock += dt;
+    const p = st.p, R = radius(p); st.R = R;
+    water.scale.setScalar(R); rim.scale.setScalar(R);
+    const wO = p < 0.4 ? 0.32 : p < 0.85 ? lerp(0.32, 0, sm((p - 0.4) / 0.45)) : 0;
+    water.material.opacity = wO; rim.material.opacity = wO * 0.4; water.visible = rim.visible = wO > 0.005;
+    for (let i = 0; i < NP; i++) {
+      const k = sm((p - 0.36 - delay[i] * 0.42) / 0.22);
+      const jig = (1 - k) * 2.2;
+      const ph = phase[i] + clock * 1.3;
+      tmp.copy(rnd[i]).multiplyScalar(R * 0.9).add(pos.set(Math.sin(ph) * jig, Math.cos(ph * 1.3) * jig, Math.sin(ph * 0.7) * jig));
+      pos.copy(tmp).lerp(target[i], k);
+      m4.compose(pos, q, sc); inst.setMatrixAt(i, m4);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+    // 蒸氣生成
+    const rate = p < 0.4 ? 260 : p < 0.8 ? lerp(260, 0, (p - 0.4) / 0.4) : 0;
+    let toSpawn = rate * dt + Math.random();
+    const a = vap.geometry.attributes;
+    for (let i = 0; i < NV; i++) {
+      if (vage[i] >= vlife[i]) {
+        if (toSpawn >= 1) {
+          toSpawn--; let v; do { v = new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1); } while (v.length() > 1 || v.length() < 0.2); v.normalize();
+          vp.set([v.x * R, v.y * R, v.z * R], i * 3); vv.set([v.x * 38, v.y * 38, v.z * 38], i * 3); vage[i] = 0; vlife[i] = 1.4 + Math.random();
+        } else { a.aAlpha.array[i] = 0; continue; }
+      }
+      vage[i] += dt; vv[i * 3 + 1] -= 40 * dt;
+      vp[i * 3] += vv[i * 3] * dt; vp[i * 3 + 1] += vv[i * 3 + 1] * dt; vp[i * 3 + 2] += vv[i * 3 + 2] * dt;
+      a.position.array.set([vp[i * 3], vp[i * 3 + 1], vp[i * 3 + 2]], i * 3);
+      a.aColor.array.set([vC.r, vC.g, vC.b], i * 3);
+      const u = vage[i] / vlife[i]; a.aAlpha.array[i] = 0.55 * (1 - u); a.aSize.array[i] = 2 + u * 7;
+    }
+    a.position.needsUpdate = a.aColor.needsUpdate = a.aAlpha.needsUpdate = a.aSize.needsUpdate = true;
+    air.update(dt, R);
+  }
+  const labels = {
+    dDroplet: { p: () => [0, st.R, 0], t: '霧滴（約 10 µm）', s: '表面濕潤', c: '#2f7fc4' },
+    dVapor: { p: () => [st.R * 1.35, st.R * 0.55, 0], t: '水蒸氣', s: '往外蒸發', c: '#7fa9cf' },
+    dPrimary: { p: () => [-st.R * 0.45, -st.R * 0.2, st.R * 0.4], t: '奈米一次顆粒', s: '懸浮在液滴裡', c: '#4a4f57' },
+    dAir: { p: () => [-st.R * 1.9, st.R * 1.2, 0], t: '熱風', s: '提供蒸發熱', c: '#d9622b' },
+    dShell: { p: () => [st.R * 0.7, -st.R * 0.7, 0], t: '殼層', s: '顆粒先在表面堆積', c: '#c2410c' },
+    dSecondary: { p: () => [st.R * 0.75, st.R * 0.6, 0], t: '球形二次顆粒', s: '數 µm～十幾 µm', c: '#4a4f57' },
+  };
+  return { group: g, update, st, labels, mats: [vm, air.m] };
+}
+
+// ── 霧滴溫度／含水率圖 ──
+function chartSvg() {
+  const W = 340, H = 160, x0 = 34, x1 = 330, y0 = 132, y1 = 12;
+  const X = p => x0 + (x1 - x0) * p;
+  const T = p => p < 0.06 ? 25 + (45 - 25) * (p / 0.06) : p < 0.4 ? 45 : 45 + (100 - 45) * (1 - Math.pow(1 - (p - 0.4) / 0.6, 1.8));
+  const M = p => p < 0.4 ? 100 - 62 * (p / 0.4) : 38 * Math.pow(1 - (p - 0.4) / 0.6, 2.2) + 1;
+  const yT = t => y0 - (y0 - y1) * (t - 20) / 90, yM = m => y0 - (y0 - y1) * m / 100;
+  let dT = '', dM = '';
+  for (let i = 0; i <= 60; i++) { const p = i / 60; dT += (i ? 'L' : 'M') + X(p).toFixed(1) + ',' + yT(T(p)).toFixed(1); dM += (i ? 'L' : 'M') + X(p).toFixed(1) + ',' + yM(M(p)).toFixed(1); }
+  return `<rect x="${X(0)}" y="${y1}" width="${X(0.4) - X(0)}" height="${y0 - y1}" fill="#2f7fc4" opacity=".07"/>
+  <rect x="${X(0.4)}" y="${y1}" width="${X(1) - X(0.4)}" height="${y0 - y1}" fill="#c2410c" opacity=".06"/>
+  <text x="${X(0.2)}" y="${y0 + 22}" font-size="12" fill="#2f7fc4" text-anchor="middle">恆率期</text>
+  <text x="${X(0.7)}" y="${y0 + 22}" font-size="12" fill="#c2410c" text-anchor="middle">減率期（結殼）</text>
+  <line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y0}" stroke="#aab2bb"/><line x1="${x0}" y1="${y0}" x2="${x0}" y2="${y1}" stroke="#aab2bb"/>
+  <path d="${dM}" fill="none" stroke="#2f7fc4" stroke-width="2.4"/><path d="${dT}" fill="none" stroke="#d9622b" stroke-width="2.4"/>
+  <text x="${x0 + 4}" y="${yM(100) + 12}" font-size="11.5" fill="#2f7fc4">含水率</text>
+  <text x="${X(0.16)}" y="${yT(45) - 6}" font-size="11.5" fill="#d9622b">溫度 ≈ 濕球 45 °C</text>
+  <text x="${X(0.88)}" y="${yT(100) - 6}" font-size="11.5" fill="#d9622b" text-anchor="middle">↑ 接近出風溫度</text>
+  <line id="cm" x1="${X(0)}" y1="${y1}" x2="${X(0)}" y2="${y0}" stroke="#1c2430" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <circle id="cmT" r="4.5" fill="#d9622b"/><circle id="cmM" r="4.5" fill="#2f7fc4"/>
+  <text x="${x1}" y="${y0 + 12}" font-size="10.5" fill="#8a929c" text-anchor="end">時間 →（數秒內）</text>`;
+}
+$('chartSvg').innerHTML = chartSvg();
+function chartMark(p) {
+  const x0 = 34, x1 = 330, y0 = 132, y1 = 12, X = x0 + (x1 - x0) * p;
+  const T = p < 0.06 ? 25 + 20 * (p / 0.06) : p < 0.4 ? 45 : 45 + 55 * (1 - Math.pow(1 - (p - 0.4) / 0.6, 1.8));
+  const M = p < 0.4 ? 100 - 62 * (p / 0.4) : 38 * Math.pow(1 - (p - 0.4) / 0.6, 2.2) + 1;
+  $('cm').setAttribute('x1', X); $('cm').setAttribute('x2', X);
+  $('cmT').setAttribute('cx', X); $('cmT').setAttribute('cy', y0 - (y0 - y1) * (T - 20) / 90);
+  $('cmM').setAttribute('cx', X); $('cmM').setAttribute('cy', y0 - (y0 - y1) * M / 100);
+}
+
+// ── 標籤 ──
+const PART_TAG = { slit: { full: true } };
+const tagPool = [];
+function tagEl(i) {
+  if (!tagPool[i]) { const el = document.createElement('div'); el.className = 'tag'; $('tags').appendChild(el); tagPool[i] = el; }
+  return tagPool[i];
+}
+const v3 = new THREE.Vector3();
+import { META_BY_ID } from '../nozzle3d.js';
+function tagInfo(t) {
+  if (typeof t === 'object') return { pos: v3.set(...t.p), t: t.t, s: t.s || '', c: t.c || '#d9622b' };
+  if (ch.scene === 'dryer') { const l = D.labels[t]; return l && { pos: v3.set(...l.p), t: l.t, s: l.s, c: l.c }; }
+  if (ch.scene === 'drop') { const l = P.labels[t]; return l && { pos: v3.set(...l.p()), t: l.t, s: l.s, c: l.c }; }
+  if (t === 'slit') { const az = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z) + 0.9; return { pos: v3.set(116 * Math.sin(az), 0, 116 * Math.cos(az)), t: '環狀噴縫', s: '360° 出霧', c: '#d9622b' }; }
+  const m = META_BY_ID[t]; if (!m) return null;
+  const a = N.anchor(t, v3); if (!a) return null;
+  return { pos: a, t: `${m.no}　${m.zh}`, s: m.en, c: ch.color };
+}
+let tagAlpha = 0;
+function layoutTags(w, h) {
+  const svg = $('lines'); let lines = '';
+  const list = ch.tags || [];
+  const pts = [];
+  const tc0 = v3.copy(controls.target).project(camera); const cx = (tc0.x + 1) / 2 * w;
+  list.forEach((t, i) => {
+    const info = tagInfo(t); if (!info) return;
+    const p = info.pos.clone().project(camera);
+    if (p.z > 1 || Math.abs(p.x) > 1.05 || Math.abs(p.y) > 1.05) return;
+    pts.push({ i, info, sx: (p.x + 1) / 2 * w, sy: (1 - p.y) / 2 * h });
+  });
+  const mobile = w < 600, gap = mobile ? 28 : 46;
+  pts.forEach(p => { p.side = p.sx < cx ? 'L' : 'R'; });
+  // 一邊太多就平衡
+  const nL = pts.filter(p => p.side === 'L').length, nR = pts.length - nL;
+  if (Math.abs(nL - nR) > 2) { const s = [...pts].sort((a, b) => a.sx - b.sx); s.forEach((p, k) => p.side = k < s.length / 2 ? 'L' : 'R'); }
+  for (let k = 0; k < tagPool.length; k++) tagPool[k].style.display = 'none';
+  let n = 0;
+  for (const side of ['L', 'R']) {
+    const col = pts.filter(p => p.side === side).sort((a, b) => a.sy - b.sy);
+    if (!col.length) continue;
+    const xs = col.map(p => p.sx);
+    const colX = side === 'L' ? Math.min(...xs) - (mobile ? 40 : 110) : Math.max(...xs) + (mobile ? 30 : 70);
+    let y = -1e9; for (const p of col) { p.ty = Math.max(p.sy, y + gap, 30); y = p.ty; }
+    const over = y - (h - 90); if (over > 0) for (const p of col) p.ty -= over;
+    for (const p of col) {
+      const el = tagEl(n++); el.style.display = ''; el.style.opacity = tagAlpha;
+      el.style.setProperty('--c', p.info.c);
+      const html = `<b>${p.info.t}</b>${p.info.s ? `<s>${p.info.s}</s>` : ''}`; if (el._h !== html) { el.innerHTML = html; el._h = html; }
+      const ew = el.offsetWidth, eh = el.offsetHeight;
+      let x = side === 'L' ? Math.min(colX, p.sx - 30) - ew : Math.max(colX, p.sx + 30);
+      x = Math.max(4, Math.min(w - ew - 4, x));
+      el.style.transform = `translate(${x}px,${p.ty - eh / 2}px)`;
+      const ex = side === 'L' ? x + ew : x;
+      lines += `<g opacity="${tagAlpha}"><polyline points="${p.sx},${p.sy} ${(ex + p.sx) / 2},${p.ty} ${ex},${p.ty}" fill="none" stroke="rgba(28,36,48,.5)" stroke-width="1.2"/><circle cx="${p.sx}" cy="${p.sy}" r="3.2" fill="${p.info.c}" stroke="#fff" stroke-width="1.2"/></g>`;
+    }
+  }
+  svg.innerHTML = lines;
+}
+
+// ── 音訊 ──
+let NAR = {};
+const audio = {}; let bgm = null;
+let voiceOn = true, musicOn = true, subOn = true, playing = false, started = false;
+async function loadNarration() {
+  try { NAR = await (await fetch('audio/narration.json')).json(); } catch (e) { NAR = {}; }
+  for (const c of CH) {
+    c.voice = NAR[c.id]?.voice ?? 14; c.subs = NAR[c.id]?.subs ?? [];
+    c.D = 0.9 + c.voice + 1.6;
+  }
+}
+
+// ── 章節控制 ──
+let ci = 0, ch = CH[0], tc = 0, voiceStarted = false;
+$('bar').innerHTML = CH.map((c, i) => `<button data-i="${i}" style="--c:${c.color}"><em>${String(i).padStart(2, '0')}</em><span>${c.short}</span><i></i></button>`).join('');
+$('bar').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { unlock(); goto(+b.dataset.i); } });
+
+let tween = null, sceneNow = null;
+function camVec(c) {
+  const [tx, ty, tz, az, el, R] = c; const a = az * Math.PI / 180, e = el * Math.PI / 180;
+  const t = new THREE.Vector3(tx, ty, tz);
+  return [t, t.clone().add(new THREE.Vector3(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)).multiplyScalar(R))];
+}
+function camTo(c, dur) {
+  const [t, p] = camVec(c);
+  if (!dur) { controls.target.copy(t); camera.position.copy(p); tween = null; return; }
+  tween = { t: 0, dur, p0: camera.position.clone(), p1: p, t0: controls.target.clone(), t1: t };
+}
+let expAnim = null;
+function applyChapter(jump) {
+  const c = ch;
+  if (c.scene === 'nozzle') {
+    const n = { section: false, explode: 0, flows: false, spray: false, focus: null, flowSize: 1, ...c.n };
+    const target = n.explode; delete n.explode;
+    N.set(n);
+    if (jump) N.set({ explode: target }); else expAnim = { from: N.state.explode, to: target, t: 0 };
+    for (const m of N.fillGroup.children) m.visible = !n.filter || n.filter.includes(m.userData.fill);
+  }
+  const R = camVec(c.cam)[0].distanceTo(camVec(c.cam)[1]);
+  camera.near = Math.max(0.5, R / 400); camera.far = R * 30; camera.updateProjectionMatrix();
+  controls.minDistance = R * 0.2; controls.maxDistance = R * 4;
+  controls.autoRotate = !!c.orbit; controls.autoRotateSpeed = (c.orbit || 0) * 2;
+  camTo(c.cam, jump ? 0 : 2.2);
+  $('chart').classList.toggle('on', !!c.chart);
+}
+let fading = false;
+function goto(i) {
+  if (i < 0 || i >= CH.length) return;
+  for (const a of Object.values(audio)) { a.pause(); }
+  ci = i; ch = CH[i]; ch._c2 = 0; tc = 0; voiceStarted = false; tagAlpha = 0; expAnim = null; tween = null;
+  // 面板
+  $('no').innerHTML = `${String(i).padStart(2, '0')}<small>／${String(CH.length - 1).padStart(2, '0')}</small>`;
+  $('ttl').textContent = ch.title; $('sub').textContent = ch.sub; $('desc').textContent = ch.desc;
+  $('keys').innerHTML = (ch.keys || []).map(k => `<div class="key"><div class="v">${k[0]}<span class="u">${k[1]}</span></div><div class="l">${k[2]}</div></div>`).join('');
+  $('legend').innerHTML = (ch.legend || []).map(l => `<span><i style="background:${l[0]}"></i>${l[1]}</span>`).join('');
+  document.documentElement.style.setProperty('--acc', ch.color === '#2e3a4b' ? '#d9622b' : ch.color);
+  document.querySelectorAll('#bar button').forEach((b, j) => { b.classList.toggle('on', j === i); b.classList.toggle('done', j < i); b.querySelector('i').style.width = j < i ? '' : '0'; });
+  document.querySelector('#bar button.on')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  $('subt').style.opacity = 0;
+  if (sceneNow !== ch.scene) {
+    const first = sceneNow === null;
+    sceneNow = ch.scene;
+    if (first) { showScene(ch.scene); applyChapter(true); }
+    else {
+      fading = true; $('gl').style.opacity = 0;
+      setTimeout(() => { showScene(ch.scene); applyChapter(true); $('gl').style.opacity = 1; fading = false; }, 360);
+    }
+  } else applyChapter(false);
+  if (ch.scene === 'drop') P.st.p = ch.drop[0];
+}
+
+function getAudio(id) {
+  if (!audio[id]) { audio[id] = new Audio(`audio/${id}.mp3`); audio[id].preload = 'auto'; }
+  return audio[id];
+}
+function unlock() {
+  if (started) return; started = true; $('start').remove();
+  if (!bgm) { bgm = new Audio('audio/bgm.mp3'); bgm.loop = true; bgm.volume = 0.10; }
+  if (musicOn) bgm.play().catch(() => {});
+}
+function setPlaying(v) { if (v && !voiceStarted) tc = 0; playing = v; $('bPlay').textContent = v ? '❚❚ 暫停' : '▶ 自動播放'; $('bPlay').classList.toggle('on', v); if (!v) for (const a of Object.values(audio)) a.pause(); else if (voiceStarted && voiceOn) { const a = getAudio(ch.id); if (a.currentTime < ch.voice - 0.1) a.play().catch(() => {}); } }
+$('bStart').onclick = () => { unlock(); setPlaying(true); goto(0); };
+$('bPlay').onclick = () => { unlock(); setPlaying(!playing); };
+$('bVoice').onclick = () => { voiceOn = !voiceOn; $('bVoice').classList.toggle('on', voiceOn); if (!voiceOn) getAudio(ch.id).pause(); };
+$('bMusic').onclick = () => { musicOn = !musicOn; $('bMusic').classList.toggle('on', musicOn); if (bgm) musicOn ? bgm.play().catch(() => {}) : bgm.pause(); };
+$('bSub').onclick = () => { subOn = !subOn; $('bSub').classList.toggle('on', subOn); };
+$('bFull').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); };
+$('fold').onclick = () => { const f = $('panel').classList.toggle('folded'); $('fold').textContent = f ? '展開 ▴' : '收合 ▾'; };
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') { unlock(); goto(ci + 1); }
+  else if (e.key === 'ArrowLeft') { unlock(); goto(ci - 1); }
+  else if (e.key === ' ') { e.preventDefault(); unlock(); setPlaying(!playing); }
+});
+controls.addEventListener('start', () => { tween = null; });
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  const s = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
+  N.setPointScale(s); D.N2.setPointScale(s);
+  for (const m of P.mats) m.uniforms.uScale.value = s;
+  uS = s;
+}
+new ResizeObserver(resize).observe(stage);
+
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+let last = performance.now(), uS = 600;
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!fading) tc += dt;
+  // 旁白
+  if (playing && !voiceStarted && tc > 0.9) { voiceStarted = true; if (voiceOn) { const a = getAudio(ch.id); a.currentTime = 0; a.play().catch(() => {}); } }
+  if (bgm) bgm.volume = musicOn ? (voiceStarted && tc < ch.D - 1 ? 0.06 : 0.12) : 0;
+  // 字幕
+  const tv = tc - 0.9; const sub = ch.subs.find(s => tv >= s[0] && tv <= s[1] + 0.15);
+  $('subt').style.opacity = subOn && sub && playing ? 1 : 0; if (sub && $('subt').textContent !== sub[2]) $('subt').textContent = sub[2];
+  // 進度＋自動換章
+  const bt = document.querySelector('#bar button.on i'); if (bt) bt.style.width = Math.min(100, tc / ch.D * 100) + '%';
+  if (playing && tc >= ch.D) { if (ci < CH.length - 1) goto(ci + 1); else setPlaying(false); }
+  // 鏡頭
+  if (tween) {
+    tween.t += dt; const k = ease(Math.min(1, tween.t / tween.dur));
+    camera.position.lerpVectors(tween.p0, tween.p1, k); controls.target.lerpVectors(tween.t0, tween.t1, k);
+    if (tween.t >= tween.dur) { tween = null; if (ch.cam2 && !ch._c2) { ch._c2 = 1; camTo(ch.cam2, Math.max(4, ch.D * 0.55)); } }
+  } else if (ch.cam2 && !ch._c2 && tc > 0.5) { ch._c2 = 1; camTo(ch.cam2, Math.max(4, ch.D * 0.55)); }
+  if (expAnim) { expAnim.t += dt / 1.6; N.set({ explode: expAnim.from + (expAnim.to - expAnim.from) * ease(Math.min(1, expAnim.t)) }); if (expAnim.t >= 1) expAnim = null; }
+  controls.update();
+  // 場景更新
+  if (ch.scene === 'nozzle') N.update(dt, ch.n?.filter);
+  if (ch.scene === 'dryer') { for (const m of D.mats) m.uniforms.uScale.value = uS * (ch.pk || 1); D.update(dt); D.N2.update(dt); }
+  if (ch.scene === 'drop') {
+    const [p0, p1] = ch.drop; const k = Math.max(0, Math.min(1, (tc - 0.4) / Math.max(3, ch.D - 1.5)));
+    P.st.p = p0 + (p1 - p0) * (started ? k : 0.35); P.update(dt); chartMark(P.st.p);
+  }
+  renderer.render(scene, camera);
+  tagAlpha = fading ? 0 : Math.min(1, Math.max(0, (tc - 1.6) / 0.6));
+  layoutTags(stage.clientWidth, stage.clientHeight);
+  requestAnimationFrame(loop);
+}
+
+await loadNarration();
+resize();
+goto(0);
+$('load').remove();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
