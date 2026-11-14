@@ -11,10 +11,35 @@ video{width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;display:blo
 nav{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
 nav a{color:#fff;background:var(--acc);text-decoration:none;padding:8px 14px;border-radius:18px;font-size:15px}
 small{color:var(--ink2)}
+#msg{display:none;margin:10px 0;padding:10px 12px;border-radius:8px;background:#fff3cd;color:#5c4400}
 </style></head><body><main>
 <h1>台南廠 自動化系統規劃與設計</h1>
-<p>片長 14 分 48 秒｜720p｜旁白＋字幕＋背景音樂。L0～L4 架構、網路資安、26 站逐站點位與設計重點、時程、預算與效益。</p>
-<video controls playsinline preload="metadata" src="video.mp4?v=202611141444"></video>
-<nav><a href="./">回互動網頁</a><a href="video.mp4?v=202611141444" download>下載影片（89 MB）</a></nav>
-<small>設計產能 25,000 噸／年｜預算為預估報價</small>
-</main></body></html>
+<p>片長 14 分 48 秒｜720p 串流（網路慢時自動切 480p）｜旁白＋字幕＋背景音樂。L0～L4 架構、控制與安全分開、網路資安、26 站逐站點位與設計重點，最後全廠總結。</p>
+<video id="v" controls playsinline preload="metadata" poster="hls/758fd95d9f/poster.jpg"></video>
+<div id="msg">這個瀏覽器播不了串流影片，請改用 Chrome 或 Safari 開啟。</div>
+<nav><a href="./">回互動網頁</a></nav>
+<small>設計產能 25,000 噸／年｜影片依 3D 模型（管路版 20261111d）錄製，最新配置以互動網頁為準</small>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"></script>
+<script>
+(function () {
+  var v = document.getElementById("v"), src = "hls/758fd95d9f/index.m3u8";
+  var nativeHls = v.canPlayType("application/vnd.apple.mpegurl");
+  function fail() { document.getElementById("msg").style.display = "block"; }
+  if (nativeHls && /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) { v.src = src; return; }
+  if (window.Hls && Hls.isSupported()) {
+    var h = new Hls({ autoStartLoad: false, maxBufferLength: 30 }), started = false;
+    h.loadSource(src); h.attachMedia(v);
+    v.addEventListener("play", function () { if (!started) { started = true; h.startLoad(-1); } });
+    h.on(Hls.Events.ERROR, function (e, d) {
+      if (!d.fatal) return;
+      if (d.type === Hls.ErrorTypes.NETWORK_ERROR) h.startLoad();
+      else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) h.recoverMediaError();
+      else fail();
+    });
+    return;
+  }
+  if (nativeHls) { v.src = src; return; }
+  fail();
+})();
+</script></body></html>
